@@ -52,7 +52,7 @@ services:
       NEXTAUTH_SECRET: dev-nextauth-secret-change-in-production
       NEXTAUTH_URL: http://localhost:4000
     ports:
-      - '4000:3000'
+      - '4000:4000'
     volumes:
       - .:/app
       - /app/node_modules

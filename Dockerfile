@@ -14,6 +14,10 @@ RUN npm ci
 FROM base AS development
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+
+# Generate Prisma Client
+RUN npx prisma generate
+
 EXPOSE 3000
 ENV PORT 3000
 CMD ["npm", "run", "dev"]
