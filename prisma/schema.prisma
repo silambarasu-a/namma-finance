@@ -1,0 +1,403 @@
+// Namma Finance - Prisma Schema
+// Production-ready financing management system with RBAC, audit trails, and optimized indexes
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// USER MANAGEMENT & ROLES
+// ============================================================================
+
+enum Role {
+  ADMIN
+  MANAGER
+  AGENT
+  CUSTOMER
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String   // bcrypt hashed
+  role      Role
+  phone     String?
+  address   String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  customer          Customer?
+  agentAssignments  AgentAssignment[]
+  collectionsAsAgent Collection[]
+  loansCreated      Loan[]            @relation("LoanCreatedBy")
+  auditLogs         AuditLog[]
+
+  @@index([role])
+  @@index([email])
+  @@index([isActive])
+  @@map("users")
+}
+
+model Customer {
+  id      String    @id @default(cuid())
+  userId  String    @unique
+  user    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dob     DateTime?
+  idProof String?   // Path to ID proof document
+  kycStatus String? @default("PENDING") // PENDING, VERIFIED, REJECTED
+
+  // Relations
+  loans            Loan[]
+  agentAssignments AgentAssignment[]
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  @@index([userId])
+  @@index([kycStatus])
+  @@map("customers")
+}
+
+// ============================================================================
+// LOAN MANAGEMENT
+// ============================================================================
+
+enum Frequency {
+  DAILY
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  HALF_YEARLY
+  YEARLY
+  CUSTOM
+}
+
+enum LoanStatus {
+  PENDING    // Loan approved but not disbursed
+  ACTIVE     // Loan disbursed and active
+  CLOSED     // Loan fully repaid
+  DEFAULTED  // Loan in default
+  PRECLOSED  // Loan closed before tenure
+}
+
+enum RepaymentType {
+  EMI                 // Standard EMI (principal + interest)
+  INTEREST_ONLY       // Only interest paid periodically, principal at end
+  BULLET_PAYMENT      // Only interest periodic, full principal at maturity
+  REDUCING_BALANCE    // Standard reducing balance EMI (most common)
+}
+
+model Loan {
+  id                   String     @id @default(cuid())
+  loanNumber           String     @unique @default(cuid()) // Human-readable loan number
+  customerId           String
+  customer             Customer   @relation(fields: [customerId], references: [id])
+  createdById          String
+  createdBy            User       @relation("LoanCreatedBy", fields: [createdById], references: [id])
+
+  // Loan terms
+  principal            Decimal       @db.Decimal(20, 2)
+  interestRate         Decimal       @db.Decimal(5, 3) // Annual interest rate (e.g., 12.500 = 12.5%)
+  frequency            Frequency
+  repaymentType        RepaymentType @default(REDUCING_BALANCE)
+  customPeriodDays     Int?          // For CUSTOM frequency
+  tenureInInstallments Int
+  installmentAmount    Decimal       @db.Decimal(20, 2)
+  totalInterest        Decimal       @db.Decimal(20, 2)
+  totalAmount          Decimal       @db.Decimal(20, 2) // principal + totalInterest
+
+  // Top-up and modifications
+  originalLoanId       String?       // If this is a top-up, reference to original loan
+  originalLoan         Loan?         @relation("LoanTopUps", fields: [originalLoanId], references: [id])
+  topUpLoans           Loan[]        @relation("LoanTopUps")
+  isTopUp              Boolean       @default(false)
+  topUpAmount          Decimal?      @db.Decimal(20, 2)
+
+  // Disbursal details
+  disbursedAmount      Decimal    @db.Decimal(20, 2) // Amount given after deducting charges
+  disbursedAt          DateTime?
+  firstInstallmentPaid Boolean    @default(false)
+
+  // Status and dates
+  status               LoanStatus @default(PENDING)
+  startDate            DateTime
+  endDate              DateTime?
+  closedAt             DateTime?
+
+  // Outstanding tracking
+  outstandingPrincipal Decimal    @db.Decimal(20, 2) @default(0)
+  outstandingInterest  Decimal    @db.Decimal(20, 2) @default(0)
+  totalCollected       Decimal    @db.Decimal(20, 2) @default(0)
+
+  // Penalty and late fee tracking
+  totalLateFees        Decimal    @db.Decimal(20, 2) @default(0)
+  totalPenalties       Decimal    @db.Decimal(20, 2) @default(0)
+  lateFeeRate          Decimal?   @db.Decimal(5, 3) // Daily late fee % (optional)
+  penaltyRate          Decimal?   @db.Decimal(5, 3) // Penalty % on default (optional)
+  gracePeriodDays      Int?       @default(0) // Days before late fee applies
+
+  // Metadata
+  remarks              String?    @db.Text
+  createdAt            DateTime   @default(now())
+  updatedAt            DateTime   @updatedAt
+
+  // Relations
+  charges      LoanCharge[]
+  collections  Collection[]
+  emiSchedule  EMISchedule[]
+  lateFees     LateFee[]
+  penalties    Penalty[]
+
+  @@index([customerId])
+  @@index([status])
+  @@index([createdById])
+  @@index([startDate])
+  @@index([loanNumber])
+  @@map("loans")
+}
+
+enum ChargeType {
+  STAMP_DUTY
+  DOCUMENT_FEE
+  PROCESSING_FEE
+  OTHER
+}
+
+model LoanCharge {
+  id     String     @id @default(cuid())
+  loanId String
+  loan   Loan       @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  type   ChargeType
+  amount Decimal    @db.Decimal(20, 2)
+
+  createdAt DateTime @default(now())
+
+  @@index([loanId])
+  @@map("loan_charges")
+}
+
+// EMI Schedule for tracking expected vs actual payments
+model EMISchedule {
+  id                String    @id @default(cuid())
+  loanId            String
+  loan              Loan      @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  installmentNumber Int
+  dueDate           DateTime
+  principalDue      Decimal   @db.Decimal(20, 2)
+  interestDue       Decimal   @db.Decimal(20, 2)
+  totalDue          Decimal   @db.Decimal(20, 2)
+
+  // Actual payment tracking
+  principalPaid     Decimal   @db.Decimal(20, 2) @default(0)
+  interestPaid      Decimal   @db.Decimal(20, 2) @default(0)
+  totalPaid         Decimal   @db.Decimal(20, 2) @default(0)
+  isPaid            Boolean   @default(false)
+  paidAt            DateTime?
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@unique([loanId, installmentNumber])
+  @@index([loanId])
+  @@index([dueDate])
+  @@index([isPaid])
+  @@map("emi_schedules")
+}
+
+// ============================================================================
+// COLLECTION MANAGEMENT
+// ============================================================================
+
+model Collection {
+  id      String   @id @default(cuid())
+  loanId  String
+  loan    Loan     @relation(fields: [loanId], references: [id])
+  agentId String
+  agent   User     @relation(fields: [agentId], references: [id])
+
+  amount          Decimal  @db.Decimal(20, 2)
+  principalAmount Decimal  @db.Decimal(20, 2) @default(0) // Amount applied to principal
+  interestAmount  Decimal  @db.Decimal(20, 2) @default(0) // Amount applied to interest
+
+  collectionDate  DateTime @default(now())
+  receiptNumber   String?  @unique
+  paymentMethod   String?  // CASH, UPI, BANK_TRANSFER, etc.
+  remarks         String?  @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([loanId])
+  @@index([agentId])
+  @@index([collectionDate])
+  @@map("collections")
+}
+
+// ============================================================================
+// LATE FEES AND PENALTIES
+// ============================================================================
+
+model LateFee {
+  id              String   @id @default(cuid())
+  loanId          String
+  loan            Loan     @relation(fields: [loanId], references: [id], onDelete: Cascade)
+
+  amount          Decimal  @db.Decimal(20, 2)
+  daysOverdue     Int      // Number of days payment was late
+  dueDate         DateTime // Original due date
+  appliedDate     DateTime @default(now()) // When late fee was applied
+  isPaid          Boolean  @default(false)
+  paidAt          DateTime?
+
+  remarks         String?  @db.Text
+  createdAt       DateTime @default(now())
+
+  @@index([loanId])
+  @@index([isPaid])
+  @@map("late_fees")
+}
+
+model Penalty {
+  id              String   @id @default(cuid())
+  loanId          String
+  loan            Loan     @relation(fields: [loanId], references: [id], onDelete: Cascade)
+
+  amount          Decimal  @db.Decimal(20, 2)
+  reason          String   // "DEFAULT", "BOUNCED_CHECK", "PRECLOSURE", etc.
+  appliedDate     DateTime @default(now())
+  isPaid          Boolean  @default(false)
+  paidAt          DateTime?
+
+  remarks         String?  @db.Text
+  createdAt       DateTime @default(now())
+
+  @@index([loanId])
+  @@index([isPaid])
+  @@map("penalties")
+}
+
+// ============================================================================
+// BORROWING (Capital borrowed from third parties)
+// ============================================================================
+
+enum BorrowingStatus {
+  ACTIVE
+  CLOSED
+}
+
+model Borrowing {
+  id           String          @id @default(cuid())
+  lenderName   String
+  lenderPhone  String?
+  lenderEmail  String?
+
+  amount       Decimal         @db.Decimal(20, 2)
+  interestRate Decimal         @db.Decimal(5, 3) // Annual interest rate
+  startDate    DateTime
+  endDate      DateTime?
+  status       BorrowingStatus @default(ACTIVE)
+
+  totalRepaid  Decimal         @db.Decimal(20, 2) @default(0)
+  outstanding  Decimal         @db.Decimal(20, 2) @default(0)
+
+  remarks      String?         @db.Text
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  // Relations
+  repayments BorrowingRepayment[]
+
+  @@index([status])
+  @@index([lenderName])
+  @@map("borrowings")
+}
+
+model BorrowingRepayment {
+  id          String    @id @default(cuid())
+  borrowingId String
+  borrowing   Borrowing @relation(fields: [borrowingId], references: [id], onDelete: Cascade)
+
+  date           DateTime @default(now())
+  amount         Decimal  @db.Decimal(20, 2)
+  principalPaid  Decimal  @db.Decimal(20, 2) @default(0)
+  interestPaid   Decimal  @db.Decimal(20, 2) @default(0)
+
+  remarks     String?  @db.Text
+  createdAt   DateTime @default(now())
+
+  @@index([borrowingId])
+  @@index([date])
+  @@map("borrowing_repayments")
+}
+
+// ============================================================================
+// AGENT ASSIGNMENT
+// ============================================================================
+
+model AgentAssignment {
+  id         String   @id @default(cuid())
+  agentId    String
+  agent      User     @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  assignedAt DateTime @default(now())
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([agentId, customerId])
+  @@index([agentId])
+  @@index([customerId])
+  @@index([isActive])
+  @@map("agent_assignments")
+}
+
+// ============================================================================
+// AUDIT LOG (for money operations and critical actions)
+// ============================================================================
+
+enum AuditAction {
+  LOAN_CREATED
+  LOAN_DISBURSED
+  LOAN_CLOSED
+  COLLECTION_RECORDED
+  COLLECTION_DELETED
+  BORROWING_CREATED
+  BORROWING_REPAYMENT
+  USER_CREATED
+  USER_UPDATED
+  AGENT_ASSIGNED
+  PRECLOSURE_CALCULATED
+}
+
+model AuditLog {
+  id          String      @id @default(cuid())
+  userId      String?
+  user        User?       @relation(fields: [userId], references: [id])
+  action      AuditAction
+  entityType  String      // "Loan", "Collection", "Borrowing", etc.
+  entityId    String
+
+  // Store snapshot of changes
+  beforeData  Json?
+  afterData   Json?
+
+  ipAddress   String?
+  userAgent   String?
+  remarks     String?     @db.Text
+  createdAt   DateTime    @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
