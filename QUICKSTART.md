@@ -1,4 +1,12 @@
-# Quick Start Guide
+# Namma Finance - Quick Start Guide
+
+## ✨ What's New - UI is Now Live!
+
+The application now has a complete navigation sidebar and functional dashboards for all roles! You can now:
+- Navigate between pages using the sidebar
+- View customer lists and add new customers
+- Browse loans with search and filters
+- Access role-specific dashboards with real data
 
 Get Namma Finance up and running in 5 minutes!
 

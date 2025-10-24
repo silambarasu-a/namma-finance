@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Money } from "@/components/Money";
+import { DashboardLayout } from "@/components/DashboardLayout";
 import Decimal from "decimal.js";
 
 export default async function AdminDashboard() {
@@ -53,28 +54,17 @@ export default async function AdminDashboard() {
   const totalOutstanding = new Decimal(loanStats._sum.outstandingPrincipal || 0);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
-              <p className="text-sm text-gray-600">Welcome back, {user.name}</p>
-            </div>
-            <form action="/api/auth/logout" method="POST">
-              <button
-                type="submit"
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-              >
-                Logout
-              </button>
-            </form>
-          </div>
+    <DashboardLayout
+      userRole={user.role}
+      userName={user.name}
+      userEmail={user.email}
+    >
+      <div className="p-8">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+          <p className="text-gray-600">Welcome back, {user.name}</p>
         </div>
-      </header>
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <div className="bg-white rounded-lg shadow p-6">
@@ -206,7 +196,7 @@ export default async function AdminDashboard() {
             </p>
           </a>
         </div>
-      </main>
-    </div>
+      </div>
+    </DashboardLayout>
   );
 }
