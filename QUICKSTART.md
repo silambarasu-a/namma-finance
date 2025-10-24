@@ -42,7 +42,7 @@ docker-compose exec app npm run db:seed
 ```
 
 ### 5. Access the Application
-Open http://localhost:3000
+Open http://localhost:4000
 
 ### 6. Login
 Use these credentials:
@@ -116,7 +116,7 @@ npm run worker:dev
 ```
 
 ### 6. Access Application
-Open http://localhost:3000
+Open http://localhost:4000
 
 ## Common Tasks
 
@@ -164,12 +164,12 @@ npm run db:migrate -- --force-reset
 ## Troubleshooting
 
 ### Port Already in Use
-If port 3000, 5432, or 6379 is already in use:
+If port 4000, 5432, or 6379 is already in use:
 
 **Option 1**: Stop conflicting services
 ```bash
-# Find process using port 3000
-lsof -ti:3000 | xargs kill -9
+# Find process using port 4000
+lsof -ti:4000 | xargs kill -9
 ```
 
 **Option 2**: Change ports in `docker-compose.yml`
