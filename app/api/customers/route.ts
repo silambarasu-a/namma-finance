@@ -5,9 +5,9 @@ import { z } from "zod";
 
 const createCustomerSchema = z.object({
   name: z.string().min(1),
-  email: z.string().email(),
+  email: z.string().email().optional().or(z.literal("")),
   password: z.string().min(8),
-  phone: z.string().optional(),
+  phone: z.string().min(1, "Phone number is required"),
   address: z.string().optional(),
   kycStatus: z.enum(["PENDING", "VERIFIED", "REJECTED"]).optional(),
   idProof: z.string().optional(),
@@ -119,16 +119,23 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const data = createCustomerSchema.parse(body);
 
-    // Check if email already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email: data.email.toLowerCase() },
-    });
+    // Generate a unique email if not provided
+    const emailToUse = data.email && data.email.trim() !== ""
+      ? data.email.toLowerCase()
+      : `customer-${Date.now()}-${Math.random().toString(36).substring(7)}@noreply.local`;
 
-    if (existingUser) {
-      return NextResponse.json(
-        { error: "Email already exists" },
-        { status: 400 }
-      );
+    // Check if email already exists (only if it's a real email)
+    if (data.email && data.email.trim() !== "") {
+      const existingUser = await prisma.user.findUnique({
+        where: { email: emailToUse },
+      });
+
+      if (existingUser) {
+        return NextResponse.json(
+          { error: "Email already exists" },
+          { status: 400 }
+        );
+      }
     }
 
     // Hash password
@@ -140,7 +147,7 @@ export async function POST(request: NextRequest) {
       const newUser = await tx.user.create({
         data: {
           name: data.name,
-          email: data.email.toLowerCase(),
+          email: emailToUse,
           password: hashedPassword,
           phone: data.phone,
           address: data.address,

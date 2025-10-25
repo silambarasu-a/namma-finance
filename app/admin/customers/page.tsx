@@ -82,7 +82,11 @@ export default function CustomersPage() {
       render: (_: any, row: Customer) => (
         <div>
           <div className="font-medium text-gray-900">{row.user.name}</div>
-          <div className="text-sm text-gray-500">{row.user.email}</div>
+          <div className="text-sm text-gray-500">
+            {row.user.email.includes('@noreply.local')
+              ? `Phone: ${row.user.phone || 'N/A'}`
+              : row.user.email}
+          </div>
         </div>
       ),
     },

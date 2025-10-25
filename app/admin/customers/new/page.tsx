@@ -109,19 +109,21 @@ export default function NewCustomerPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="email" required>
+                  <Label htmlFor="email">
                     Email Address
                   </Label>
                   <Input
                     id="email"
                     type="email"
-                    required
                     value={formData.email}
                     onChange={(e) =>
                       setFormData({ ...formData, email: e.target.value })
                     }
-                    placeholder="email@example.com"
+                    placeholder="email@example.com (optional)"
                   />
+                  <p className="text-xs text-gray-500">
+                    Optional. If not provided, phone number will be used for login.
+                  </p>
                 </div>
               </div>
 
@@ -147,16 +149,20 @@ export default function NewCustomerPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Phone Number</Label>
+                  <Label htmlFor="phone" required>Phone Number</Label>
                   <Input
                     id="phone"
                     type="tel"
+                    required
                     value={formData.phone}
                     onChange={(e) =>
                       setFormData({ ...formData, phone: e.target.value })
                     }
                     placeholder="+91 XXXXX XXXXX"
                   />
+                  <p className="text-xs text-gray-500">
+                    Required for customer identification and communication
+                  </p>
                 </div>
               </div>
 
