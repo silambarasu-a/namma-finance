@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { Plus } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 
 export default function AgentCollectionsPage() {
   return (
-    <div className="p-8">
-      <div className="mb-8 flex items-center justify-between">
+    <div className="space-y-6 p-8">
+      <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Collections</h1>
           <p className="text-gray-600">Record and view EMI collections</p>
@@ -20,17 +21,19 @@ export default function AgentCollectionsPage() {
         </Link>
       </div>
 
-      <div className="rounded-lg bg-white p-8 text-center shadow">
-        <p className="text-gray-600">
-          Use the admin collections page to record payments
-        </p>
-        <Link
-          href="/admin/collections"
-          className="mt-4 inline-block text-blue-600 hover:text-blue-700"
-        >
-          Go to Collections →
-        </Link>
-      </div>
+      <Card>
+        <CardContent className="p-8 text-center">
+          <p className="text-gray-600">
+            Use the admin collections page to record payments
+          </p>
+          <Link
+            href="/admin/collections"
+            className="mt-4 inline-block text-blue-600 hover:text-blue-700"
+          >
+            Go to Collections →
+          </Link>
+        </CardContent>
+      </Card>
     </div>
   );
 }

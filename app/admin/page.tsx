@@ -3,7 +3,19 @@ import { getSessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Money } from "@/components/Money";
 import { DashboardLayout } from "@/components/DashboardLayout";
+import { StatCard } from "@/components/ui/stat-card";
+import { LoansTable } from "@/components/LoansTable";
 import Decimal from "decimal.js";
+import Link from "next/link";
+import {
+  FileText,
+  Users,
+  TrendingUp,
+  AlertCircle,
+  UserPlus,
+  BarChart3,
+  ArrowRight,
+} from "lucide-react";
 
 export default async function AdminDashboard() {
   const user = await getSessionUser();
@@ -53,148 +65,147 @@ export default async function AdminDashboard() {
   const totalCollected = new Decimal(loanStats._sum.totalCollected || 0);
   const totalOutstanding = new Decimal(loanStats._sum.outstandingPrincipal || 0);
 
+  // Convert loans data to plain objects for client component
+  const loansData = recentLoans.map((loan) => ({
+    id: loan.id,
+    loanNumber: loan.loanNumber,
+    customerName: loan.customer.user.name,
+    customerEmail: loan.customer.user.email,
+    principal: loan.principal.toString(),
+    status: loan.status,
+    createdAt: loan.createdAt.toISOString(),
+  }));
+
   return (
     <DashboardLayout
       userRole={user.role}
       userName={user.name}
       userEmail={user.email}
     >
-      <div className="p-8">
+      <div className="space-y-6">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-          <p className="text-gray-600">Welcome back, {user.name}</p>
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold text-gray-900 sm:text-4xl">
+            Admin Dashboard
+          </h1>
+          <p className="text-base text-gray-600 sm:text-lg">
+            Welcome back, {user.name}
+          </p>
         </div>
+
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="text-sm font-medium text-gray-600">Total Loans</div>
-            <div className="mt-2 text-3xl font-bold text-gray-900">{totalLoans}</div>
-            <div className="mt-1 text-sm text-gray-500">{activeLoans} active</div>
-          </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <StatCard
+            title="Total Loans"
+            value={totalLoans}
+            subtitle={`${activeLoans} active`}
+            icon={FileText}
+            variant="primary"
+          />
 
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="text-sm font-medium text-gray-600">Total Customers</div>
-            <div className="mt-2 text-3xl font-bold text-gray-900">{totalCustomers}</div>
-            <div className="mt-1 text-sm text-gray-500">{totalAgents} agents</div>
-          </div>
+          <StatCard
+            title="Total Customers"
+            value={totalCustomers}
+            subtitle={`${totalAgents} agents`}
+            icon={Users}
+            variant="success"
+          />
 
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="text-sm font-medium text-gray-600">Total Disbursed</div>
-            <div className="mt-2 text-2xl font-bold text-gray-900">
-              <Money amount={totalDisbursed} />
-            </div>
-            <div className="mt-1 text-sm text-gray-500">
-              Principal: <Money amount={totalPrincipal} />
-            </div>
-          </div>
+          <StatCard
+            title="Total Disbursed"
+            value={<Money amount={totalDisbursed} />}
+            subtitle={
+              <>
+                Principal: <Money amount={totalPrincipal} />
+              </>
+            }
+            icon={TrendingUp}
+            variant="primary"
+          />
 
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="text-sm font-medium text-gray-600">Outstanding</div>
-            <div className="mt-2 text-2xl font-bold text-red-600">
-              <Money amount={totalOutstanding} />
-            </div>
-            <div className="mt-1 text-sm text-green-600">
-              Collected: <Money amount={totalCollected} />
-            </div>
-          </div>
+          <StatCard
+            title="Outstanding"
+            value={<Money amount={totalOutstanding} />}
+            subtitle={
+              <>
+                Collected: <Money amount={totalCollected} />
+              </>
+            }
+            icon={AlertCircle}
+            variant="danger"
+          />
         </div>
 
         {/* Recent Loans */}
-        <div className="bg-white rounded-lg shadow">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900">Recent Loans</h2>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Customer
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Loan ID
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Principal
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Created
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {recentLoans.map((loan) => (
-                  <tr key={loan.id}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">
-                        {loan.customer.user.name}
-                      </div>
-                      <div className="text-sm text-gray-500">{loan.customer.user.email}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {loan.loanNumber}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      <Money amount={loan.principal} />
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`px-2 py-1 text-xs font-medium rounded-full ${
-                          loan.status === "ACTIVE"
-                            ? "bg-green-100 text-green-800"
-                            : loan.status === "CLOSED"
-                            ? "bg-gray-100 text-gray-800"
-                            : "bg-yellow-100 text-yellow-800"
-                        }`}
-                      >
-                        {loan.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(loan.createdAt).toLocaleDateString()}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <LoansTable loans={loansData} showViewAll={true} viewAllHref="/admin/loans" />
 
         {/* Quick Actions */}
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-          <a
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <Link
             href="/admin/loans/new"
-            className="block p-6 bg-blue-50 border-2 border-blue-200 rounded-lg hover:bg-blue-100 transition"
+            className="group relative overflow-hidden rounded-xl border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-blue-100 p-6 transition-all duration-300 hover:border-blue-300 hover:shadow-lg"
           >
-            <h3 className="text-lg font-semibold text-blue-900">Create New Loan</h3>
-            <p className="mt-2 text-sm text-blue-700">
-              Create a new loan for an existing customer
-            </p>
-          </a>
+            <div className="absolute right-4 top-4 text-blue-600 opacity-0 transition-all duration-300 group-hover:translate-x-1 group-hover:opacity-100">
+              <ArrowRight className="h-5 w-5" />
+            </div>
+            <div className="flex items-start space-x-4">
+              <div className="rounded-lg bg-blue-600 p-3 text-white">
+                <FileText className="h-6 w-6" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-blue-900">
+                  Create New Loan
+                </h3>
+                <p className="mt-1 text-sm text-blue-700">
+                  Create a new loan for an existing customer
+                </p>
+              </div>
+            </div>
+          </Link>
 
-          <a
+          <Link
             href="/admin/customers"
-            className="block p-6 bg-green-50 border-2 border-green-200 rounded-lg hover:bg-green-100 transition"
+            className="group relative overflow-hidden rounded-xl border-2 border-green-200 bg-gradient-to-br from-green-50 to-green-100 p-6 transition-all duration-300 hover:border-green-300 hover:shadow-lg"
           >
-            <h3 className="text-lg font-semibold text-green-900">Manage Customers</h3>
-            <p className="mt-2 text-sm text-green-700">
-              View and manage customer accounts
-            </p>
-          </a>
+            <div className="absolute right-4 top-4 text-green-600 opacity-0 transition-all duration-300 group-hover:translate-x-1 group-hover:opacity-100">
+              <ArrowRight className="h-5 w-5" />
+            </div>
+            <div className="flex items-start space-x-4">
+              <div className="rounded-lg bg-green-600 p-3 text-white">
+                <UserPlus className="h-6 w-6" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-green-900">
+                  Manage Customers
+                </h3>
+                <p className="mt-1 text-sm text-green-700">
+                  View and manage customer accounts
+                </p>
+              </div>
+            </div>
+          </Link>
 
-          <a
+          <Link
             href="/admin/reports"
-            className="block p-6 bg-purple-50 border-2 border-purple-200 rounded-lg hover:bg-purple-100 transition"
+            className="group relative overflow-hidden rounded-xl border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-purple-100 p-6 transition-all duration-300 hover:border-purple-300 hover:shadow-lg"
           >
-            <h3 className="text-lg font-semibold text-purple-900">View Reports</h3>
-            <p className="mt-2 text-sm text-purple-700">
-              Generate and view financial reports
-            </p>
-          </a>
+            <div className="absolute right-4 top-4 text-purple-600 opacity-0 transition-all duration-300 group-hover:translate-x-1 group-hover:opacity-100">
+              <ArrowRight className="h-5 w-5" />
+            </div>
+            <div className="flex items-start space-x-4">
+              <div className="rounded-lg bg-purple-600 p-3 text-white">
+                <BarChart3 className="h-6 w-6" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-purple-900">
+                  View Reports
+                </h3>
+                <p className="mt-1 text-sm text-purple-700">
+                  Generate and view financial reports
+                </p>
+              </div>
+            </div>
+          </Link>
         </div>
       </div>
     </DashboardLayout>

@@ -5,6 +5,15 @@ import { prisma } from "@/lib/prisma";
 import { Money } from "@/components/Money";
 import Decimal from "decimal.js";
 import Link from "next/link";
+import { StatCard } from "@/components/ui/stat-card";
+import { CustomerLoansTable } from "@/components/CustomerLoansTable";
+import {
+  Wallet,
+  AlertCircle,
+  FileText,
+  CreditCard,
+  ArrowRight,
+} from "lucide-react";
 
 export default async function CustomerDashboard() {
   const user = await getSessionUser();
@@ -40,132 +49,110 @@ export default async function CustomerDashboard() {
     new Decimal(0)
   );
 
+  // Convert loans data to plain objects for client component
+  const loansData = customer.loans.map((loan) => ({
+    id: loan.id,
+    loanNumber: loan.loanNumber,
+    principal: loan.principal.toString(),
+    interestRate: loan.interestRate.toString(),
+    outstandingPrincipal: loan.outstandingPrincipal.toString(),
+    status: loan.status,
+  }));
+
   return (
     <DashboardLayout
       userRole={user.role}
       userName={user.name}
       userEmail={user.email}
     >
-      <div className="p-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">My Loans</h1>
-          <p className="text-gray-600">Welcome back, {user.name}</p>
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold text-gray-900 sm:text-4xl">
+            My Loans
+          </h1>
+          <p className="text-base text-gray-600 sm:text-lg">
+            Welcome back, {user.name}
+          </p>
         </div>
 
         {/* Stats Grid */}
-        <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-3">
-          <div className="rounded-lg bg-white p-6 shadow">
-            <div className="text-sm font-medium text-gray-600">Total Loans</div>
-            <div className="mt-2 text-3xl font-bold text-gray-900">
-              {totalLoans}
-            </div>
-            <div className="mt-1 text-sm text-gray-500">{activeLoans} active</div>
-          </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <StatCard
+            title="Total Loans"
+            value={totalLoans}
+            subtitle={`${activeLoans} active`}
+            icon={FileText}
+            variant="primary"
+          />
 
-          <div className="rounded-lg bg-white p-6 shadow">
-            <div className="text-sm font-medium text-gray-600">Total Borrowed</div>
-            <div className="mt-2 text-2xl font-bold text-gray-900">
-              <Money amount={totalBorrowed} />
-            </div>
-          </div>
+          <StatCard
+            title="Total Borrowed"
+            value={<Money amount={totalBorrowed} />}
+            icon={Wallet}
+            variant="success"
+          />
 
-          <div className="rounded-lg bg-white p-6 shadow">
-            <div className="text-sm font-medium text-gray-600">Outstanding</div>
-            <div className="mt-2 text-2xl font-bold text-red-600">
-              <Money amount={totalOutstanding} />
-            </div>
-          </div>
+          <StatCard
+            title="Outstanding Amount"
+            value={<Money amount={totalOutstanding} />}
+            icon={AlertCircle}
+            variant="danger"
+          />
         </div>
 
-        {/* My Loans */}
-        <div className="mb-8 rounded-lg bg-white shadow">
-          <div className="border-b border-gray-200 px-6 py-4">
-            <h2 className="text-lg font-semibold text-gray-900">My Loans</h2>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Loan Number
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Principal
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Interest Rate
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Outstanding
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Status
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200 bg-white">
-                {customer.loans.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
-                      No loans found
-                    </td>
-                  </tr>
-                ) : (
-                  customer.loans.map((loan) => (
-                    <tr key={loan.id}>
-                      <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">
-                        {loan.loanNumber}
-                      </td>
-                      <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
-                        <Money amount={new Decimal(loan.principal)} />
-                      </td>
-                      <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
-                        {loan.interestRate.toString()}%
-                      </td>
-                      <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-red-600">
-                        <Money amount={new Decimal(loan.outstandingPrincipal)} />
-                      </td>
-                      <td className="whitespace-nowrap px-6 py-4">
-                        <span
-                          className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${
-                            loan.status === "ACTIVE"
-                              ? "bg-green-100 text-green-800"
-                              : loan.status === "CLOSED"
-                              ? "bg-gray-100 text-gray-800"
-                              : "bg-yellow-100 text-yellow-800"
-                          }`}
-                        >
-                          {loan.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        {/* My Loans Table */}
+        <CustomerLoansTable
+          loans={loansData}
+          totalLoans={totalLoans}
+          showViewAll={true}
+          viewAllHref="/customer/loans"
+        />
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Link
             href="/customer/loans"
-            className="block rounded-lg border-2 border-blue-200 bg-blue-50 p-6 transition hover:bg-blue-100"
+            className="group relative overflow-hidden rounded-xl border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-blue-100 p-6 transition-all duration-300 hover:border-blue-300 hover:shadow-lg"
           >
-            <h3 className="text-lg font-semibold text-blue-900">View All Loans</h3>
-            <p className="mt-2 text-sm text-blue-700">
-              See all your loans and payment history
-            </p>
+            <div className="absolute right-4 top-4 text-blue-600 opacity-0 transition-all duration-300 group-hover:translate-x-1 group-hover:opacity-100">
+              <ArrowRight className="h-5 w-5" />
+            </div>
+            <div className="flex items-start space-x-4">
+              <div className="rounded-lg bg-blue-600 p-3 text-white">
+                <FileText className="h-6 w-6" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-blue-900">
+                  View All Loans
+                </h3>
+                <p className="mt-1 text-sm text-blue-700">
+                  See all your loans and payment history
+                </p>
+              </div>
+            </div>
           </Link>
 
           <Link
             href="/customer/payments"
-            className="block rounded-lg border-2 border-green-200 bg-green-50 p-6 transition hover:bg-green-100"
+            className="group relative overflow-hidden rounded-xl border-2 border-green-200 bg-gradient-to-br from-green-50 to-green-100 p-6 transition-all duration-300 hover:border-green-300 hover:shadow-lg"
           >
-            <h3 className="text-lg font-semibold text-green-900">Payment History</h3>
-            <p className="mt-2 text-sm text-green-700">
-              View your payment history
-            </p>
+            <div className="absolute right-4 top-4 text-green-600 opacity-0 transition-all duration-300 group-hover:translate-x-1 group-hover:opacity-100">
+              <ArrowRight className="h-5 w-5" />
+            </div>
+            <div className="flex items-start space-x-4">
+              <div className="rounded-lg bg-green-600 p-3 text-white">
+                <CreditCard className="h-6 w-6" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-green-900">
+                  Payment History
+                </h3>
+                <p className="mt-1 text-sm text-green-700">
+                  View your payment history and receipts
+                </p>
+              </div>
+            </div>
           </Link>
         </div>
       </div>

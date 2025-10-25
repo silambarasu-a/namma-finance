@@ -280,8 +280,43 @@ export async function GET(request: NextRequest) {
       prisma.loan.count({ where }),
     ]);
 
+    // Serialize loans data (convert Decimal and Date to strings)
+    const serializedLoans = loans.map((loan) => {
+      try {
+        return {
+          id: loan.id,
+          loanNumber: loan.loanNumber,
+          customerId: loan.customerId,
+          principal: loan.principal?.toString() || "0",
+          interestRate: loan.interestRate?.toString() || "0",
+          status: loan.status,
+          frequency: loan.frequency,
+          tenureInInstallments: loan.tenureInInstallments,
+          installmentAmount: loan.installmentAmount?.toString() || "0",
+          disbursedAmount: loan.disbursedAmount?.toString() || "0",
+          totalCollected: loan.totalCollected?.toString() || "0",
+          outstandingPrincipal: loan.outstandingPrincipal?.toString() || "0",
+          outstandingInterest: loan.outstandingInterest?.toString() || "0",
+          createdAt: loan.createdAt.toISOString(),
+          customer: {
+            id: loan.customer.id,
+            user: {
+              id: loan.customer.user.id,
+              name: loan.customer.user.name,
+              email: loan.customer.user.email,
+              phone: loan.customer.user.phone,
+            },
+          },
+          _count: loan._count,
+        };
+      } catch (err) {
+        console.error("Error serializing loan:", loan.id, err);
+        throw err;
+      }
+    });
+
     return NextResponse.json({
-      loans,
+      loans: serializedLoans,
       pagination: {
         page,
         limit,

@@ -15,9 +15,11 @@ export function DashboardLayout({
   userEmail,
 }: DashboardLayoutProps) {
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50">
+    <div className="flex h-screen overflow-hidden bg-gradient-to-br from-gray-50 via-blue-50/30 to-gray-50">
       <Sidebar userRole={userRole} userName={userName} userEmail={userEmail} />
-      <main className="flex-1 overflow-y-auto">{children}</main>
+      <main className="flex-1 overflow-y-auto">
+        <div className="min-h-full p-4 sm:p-6 lg:p-8">{children}</div>
+      </main>
     </div>
   );
 }
