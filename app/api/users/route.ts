@@ -24,6 +24,11 @@ export async function GET(request: NextRequest) {
 
   try {
     const users = await prisma.user.findMany({
+      where: {
+        role: {
+          not: "CUSTOMER", // Exclude customers from users list
+        },
+      },
       select: {
         id: true,
         name: true,
@@ -31,6 +36,9 @@ export async function GET(request: NextRequest) {
         role: true,
         phone: true,
         isActive: true,
+        canDeleteCollections: true,
+        canDeleteCustomers: true,
+        canDeleteUsers: true,
         createdAt: true,
       },
       orderBy: {

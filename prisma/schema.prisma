@@ -30,6 +30,12 @@ model User {
   phone     String?
   address   String?
   isActive  Boolean  @default(true)
+
+  // Manager Permissions (only applicable for MANAGER role)
+  canDeleteCollections Boolean  @default(false)
+  canDeleteCustomers   Boolean  @default(false)
+  canDeleteUsers       Boolean  @default(false)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

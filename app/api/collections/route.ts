@@ -247,6 +247,166 @@ export async function POST(request: NextRequest) {
 }
 
 /**
+ * DELETE /api/collections - Delete a collection (Admin or Manager with permission)
+ */
+export async function DELETE(request: NextRequest) {
+  try {
+    // Authenticate
+    const user = await getSessionUserFromRequest(request);
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Check permissions - Only ADMIN or MANAGER with canDeleteCollections
+    if (user.role === "ADMIN") {
+      // Admin can always delete
+    } else if (user.role === "MANAGER") {
+      // Manager needs explicit permission
+      if (!user.canDeleteCollections) {
+        return NextResponse.json(
+          { error: "You don't have permission to delete collections. Contact an admin." },
+          { status: 403 }
+        );
+      }
+    } else {
+      // AGENT and CUSTOMER cannot delete
+      return NextResponse.json(
+        { error: "Only admins and authorized managers can delete collections" },
+        { status: 403 }
+      );
+    }
+
+    // Get collection ID from query params
+    const { searchParams } = new URL(request.url);
+    const collectionId = searchParams.get("id");
+
+    if (!collectionId) {
+      return NextResponse.json({ error: "Collection ID is required" }, { status: 400 });
+    }
+
+    // Fetch collection with loan details
+    const collection = await prisma.collection.findUnique({
+      where: { id: collectionId },
+      include: {
+        loan: true,
+      },
+    });
+
+    if (!collection) {
+      return NextResponse.json({ error: "Collection not found" }, { status: 404 });
+    }
+
+    // Store data for audit log before deletion
+    const collectionData = {
+      id: collection.id,
+      loanId: collection.loanId,
+      amount: collection.amount.toString(),
+      principalAmount: collection.principalAmount.toString(),
+      interestAmount: collection.interestAmount.toString(),
+      receiptNumber: collection.receiptNumber,
+      collectionDate: collection.collectionDate.toISOString(),
+    };
+
+    // Delete collection and reverse loan updates in transaction
+    await prisma.$transaction(async (tx) => {
+      const loan = collection.loan;
+
+      // Reverse the collection from loan outstanding amounts
+      const newOutstandingInterest = new Decimal(loan.outstandingInterest).plus(
+        new Decimal(collection.interestAmount)
+      );
+      const newOutstandingPrincipal = new Decimal(loan.outstandingPrincipal).plus(
+        new Decimal(collection.principalAmount)
+      );
+      const newTotalCollected = new Decimal(loan.totalCollected).minus(
+        new Decimal(collection.amount)
+      );
+
+      // Update loan
+      await tx.loan.update({
+        where: { id: collection.loanId },
+        data: {
+          outstandingInterest: newOutstandingInterest.toString(),
+          outstandingPrincipal: newOutstandingPrincipal.toString(),
+          totalCollected: newTotalCollected.toString(),
+          status: "ACTIVE", // Reopen loan if it was closed
+          closedAt: null,
+        },
+      });
+
+      // Reverse EMI schedule updates
+      const collectionAmount = new Decimal(collection.amount);
+      const paidSchedules = await tx.eMISchedule.findMany({
+        where: {
+          loanId: collection.loanId,
+          isPaid: true,
+          paidAt: { gte: collection.collectionDate },
+        },
+        orderBy: { installmentNumber: "desc" },
+      });
+
+      // Reverse payments from schedules
+      let remainingToReverse = collectionAmount;
+      for (const schedule of paidSchedules) {
+        if (remainingToReverse.lte(0)) break;
+
+        const totalPaid = new Decimal(schedule.totalPaid);
+        const amountToReverse = Decimal.min(remainingToReverse, totalPaid);
+        const newTotalPaid = totalPaid.minus(amountToReverse);
+
+        await tx.eMISchedule.update({
+          where: { id: schedule.id },
+          data: {
+            totalPaid: newTotalPaid.toString(),
+            isPaid: false,
+            paidAt: null,
+          },
+        });
+
+        remainingToReverse = remainingToReverse.minus(amountToReverse);
+      }
+
+      // Delete the collection
+      await tx.collection.delete({
+        where: { id: collectionId },
+      });
+    });
+
+    // Create audit log
+    const clientInfo = getClientInfo(request);
+    await createAuditLog({
+      userId: user.id,
+      action: "COLLECTION_DELETED",
+      entityType: "Collection",
+      entityId: collectionId,
+      beforeData: collectionData,
+      afterData: null,
+      ...clientInfo,
+      remarks: `Collection ${collection.receiptNumber} deleted by ${user.role}`,
+    });
+
+    // Clear caches
+    await cacheDelPattern(`loan:${collection.loanId}*`);
+    await cacheDelPattern(`loans:customer:*`);
+    await cacheDelPattern(`dashboard:*`);
+
+    return NextResponse.json({
+      message: "Collection deleted successfully",
+      deletedCollection: collectionData,
+    });
+  } catch (error) {
+    console.error("Collection deletion error:", error);
+    return NextResponse.json(
+      {
+        error: "Failed to delete collection",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 }
+    );
+  }
+}
+
+/**
  * GET /api/collections - List collections
  */
 export async function GET(request: NextRequest) {

@@ -13,6 +13,10 @@ import {
   FileText,
   CreditCard,
   ArrowRight,
+  TrendingUp,
+  Calendar,
+  CheckCircle,
+  Clock,
 } from "lucide-react";
 
 export default async function CustomerDashboard() {
@@ -22,32 +26,114 @@ export default async function CustomerDashboard() {
     redirect("/login");
   }
 
-  // Get customer record
-  const customer = await prisma.customer.findUnique({
-    where: { userId: user.id },
-    include: {
-      loans: {
-        orderBy: { createdAt: "desc" },
-        take: 5,
+  // Get customer record with comprehensive data
+  const [customer, allLoans, upcomingEmis, overdueEmis, totalPaidCollections] = await Promise.all([
+    prisma.customer.findUnique({
+      where: { userId: user.id },
+      include: {
+        loans: {
+          orderBy: { createdAt: "desc" },
+          take: 5,
+        },
       },
-    },
-  });
+    }),
+    // All loans for comprehensive stats
+    prisma.loan.findMany({
+      where: {
+        customer: {
+          userId: user.id,
+        },
+      },
+      select: {
+        id: true,
+        status: true,
+        principal: true,
+        disbursedAmount: true,
+        totalCollected: true,
+        outstandingPrincipal: true,
+        outstandingInterest: true,
+      },
+    }),
+    // Upcoming EMIs
+    prisma.emiSchedule.findMany({
+      where: {
+        loan: {
+          customer: {
+            userId: user.id,
+          },
+          status: "ACTIVE",
+        },
+        isPaid: false,
+        dueDate: {
+          gte: new Date(),
+          lte: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        },
+      },
+      select: {
+        emiAmount: true,
+        dueDate: true,
+      },
+      orderBy: {
+        dueDate: "asc",
+      },
+      take: 1,
+    }),
+    // Overdue EMIs count
+    prisma.emiSchedule.count({
+      where: {
+        loan: {
+          customer: {
+            userId: user.id,
+          },
+          status: "ACTIVE",
+        },
+        isPaid: false,
+        dueDate: { lt: new Date() },
+      },
+    }),
+    // Total paid
+    prisma.collection.aggregate({
+      where: {
+        loan: {
+          customer: {
+            userId: user.id,
+          },
+        },
+      },
+      _sum: {
+        amount: true,
+      },
+    }),
+  ]);
 
   if (!customer) {
     redirect("/login");
   }
 
   // Calculate totals
-  const totalLoans = customer.loans.length;
-  const activeLoans = customer.loans.filter((l) => l.status === "ACTIVE").length;
-  const totalOutstanding = customer.loans.reduce(
-    (sum, loan) => sum.plus(new Decimal(loan.outstandingPrincipal)),
+  const totalLoans = allLoans.length;
+  const activeLoans = allLoans.filter((l) => l.status === "ACTIVE").length;
+  const closedLoans = allLoans.filter((l) => l.status === "CLOSED" || l.status === "PRECLOSED").length;
+
+  const totalOutstandingPrincipal = allLoans.reduce(
+    (sum, loan) => sum.plus(new Decimal(loan.outstandingPrincipal || 0)),
     new Decimal(0)
   );
-  const totalBorrowed = customer.loans.reduce(
-    (sum, loan) => sum.plus(new Decimal(loan.principal)),
+  const totalOutstandingInterest = allLoans.reduce(
+    (sum, loan) => sum.plus(new Decimal(loan.outstandingInterest || 0)),
     new Decimal(0)
   );
+  const totalOutstanding = totalOutstandingPrincipal.plus(totalOutstandingInterest);
+
+  const totalBorrowed = allLoans.reduce(
+    (sum, loan) => sum.plus(new Decimal(loan.principal || 0)),
+    new Decimal(0)
+  );
+
+  const totalPaid = new Decimal(totalPaidCollections._sum.amount || 0);
+
+  const nextEmiAmount = upcomingEmis.length > 0 ? new Decimal(upcomingEmis[0].emiAmount) : new Decimal(0);
+  const nextEmiDate = upcomingEmis.length > 0 ? upcomingEmis[0].dueDate : null;
 
   // Convert loans data to plain objects for client component
   const loansData = customer.loans.map((loan) => ({
@@ -76,28 +162,99 @@ export default async function CustomerDashboard() {
           </p>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {/* Primary Stats Grid */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard
-            title="Total Loans"
-            value={totalLoans}
-            subtitle={`${activeLoans} active`}
-            icon={FileText}
+            title="Total Borrowed"
+            value={<Money amount={totalBorrowed} />}
+            subtitle={`${activeLoans} active loans`}
+            icon={Wallet}
             variant="primary"
           />
 
           <StatCard
-            title="Total Borrowed"
-            value={<Money amount={totalBorrowed} />}
-            icon={Wallet}
+            title="Total Paid"
+            value={<Money amount={totalPaid} />}
+            subtitle={`${closedLoans} loans closed`}
+            icon={TrendingUp}
             variant="success"
           />
 
           <StatCard
             title="Outstanding Amount"
             value={<Money amount={totalOutstanding} />}
+            subtitle={
+              <>
+                P: <Money amount={totalOutstandingPrincipal} /> | I:{" "}
+                <Money amount={totalOutstandingInterest} />
+              </>
+            }
             icon={AlertCircle}
-            variant="danger"
+            variant={overdueEmis > 0 ? "danger" : "warning"}
+          />
+
+          <StatCard
+            title="Overdue EMIs"
+            value={overdueEmis}
+            subtitle={overdueEmis > 0 ? "Please pay immediately" : "All up to date"}
+            icon={overdueEmis > 0 ? Clock : CheckCircle}
+            variant={overdueEmis > 0 ? "danger" : "success"}
+          />
+        </div>
+
+        {/* Next EMI Section */}
+        {nextEmiDate && (
+          <div className="rounded-lg border-2 border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 p-6">
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              <div>
+                <div className="flex items-center gap-2 text-sm font-medium text-blue-600">
+                  <Calendar className="h-4 w-4" />
+                  Next EMI Due
+                </div>
+                <div className="mt-2 flex items-baseline gap-2">
+                  <span className="text-3xl font-bold text-gray-900">
+                    <Money amount={nextEmiAmount} />
+                  </span>
+                  <span className="text-sm text-gray-600">
+                    due on {nextEmiDate.toLocaleDateString("en-IN", {
+                      day: "2-digit",
+                      month: "short",
+                      year: "numeric",
+                    })}
+                  </span>
+                </div>
+              </div>
+              <div className="text-sm text-gray-600">
+                {Math.ceil((nextEmiDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24))} days remaining
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Secondary Stats */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <StatCard
+            title="Total Loans"
+            value={totalLoans}
+            subtitle={`${activeLoans} active, ${closedLoans} closed`}
+            icon={FileText}
+            variant="default"
+          />
+
+          <StatCard
+            title="Upcoming EMIs"
+            value={upcomingEmis.length}
+            subtitle="Due in next 7 days"
+            icon={Calendar}
+            variant="default"
+          />
+
+          <StatCard
+            title="Loan Status"
+            value={activeLoans > 0 ? "Active" : "No Active Loans"}
+            subtitle={activeLoans > 0 ? `${activeLoans} loan(s) active` : "All loans settled"}
+            icon={activeLoans > 0 ? CreditCard : CheckCircle}
+            variant={activeLoans > 0 ? "primary" : "success"}
           />
         </div>
 

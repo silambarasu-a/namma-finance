@@ -6,7 +6,7 @@ import { ClientDashboardLayout } from "@/components/ClientDashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { Badge } from "@/components/ui/badge";
-import { Users, Plus } from "lucide-react";
+import { Users, Plus, Settings, Trash2 } from "lucide-react";
 
 interface User {
   id: string;
@@ -15,12 +15,22 @@ interface User {
   role: string;
   phone: string | null;
   isActive: boolean;
+  canDeleteCollections?: boolean;
+  canDeleteCustomers?: boolean;
+  canDeleteUsers?: boolean;
   createdAt: string;
 }
 
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showPermissionsModal, setShowPermissionsModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [permissions, setPermissions] = useState({
+    canDeleteCollections: false,
+    canDeleteCustomers: false,
+    canDeleteUsers: false,
+  });
 
   useEffect(() => {
     fetchUsers();
@@ -39,6 +49,61 @@ export default function UsersPage() {
       console.error("Error fetching users:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleManagePermissions = (user: User) => {
+    setSelectedUser(user);
+    setPermissions({
+      canDeleteCollections: user.canDeleteCollections || false,
+      canDeleteCustomers: user.canDeleteCustomers || false,
+      canDeleteUsers: user.canDeleteUsers || false,
+    });
+    setShowPermissionsModal(true);
+  };
+
+  const handleSavePermissions = async () => {
+    if (!selectedUser) return;
+
+    try {
+      const response = await fetch(`/api/users/${selectedUser.id}/permissions`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(permissions),
+      });
+
+      if (response.ok) {
+        setShowPermissionsModal(false);
+        fetchUsers();
+      } else {
+        const data = await response.json();
+        alert(data.error || "Failed to update permissions");
+      }
+    } catch (error) {
+      console.error("Error updating permissions:", error);
+      alert("Failed to update permissions");
+    }
+  };
+
+  const handleDeleteUser = async (user: User) => {
+    if (!confirm(`Are you sure you want to delete ${user.name}? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/users/${user.id}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        fetchUsers();
+      } else {
+        const data = await response.json();
+        alert(data.error || "Failed to delete user");
+      }
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      alert("Failed to delete user");
     }
   };
 
@@ -104,6 +169,32 @@ export default function UsersPage() {
         </span>
       ),
     },
+    {
+      header: "Actions",
+      accessor: "id",
+      render: (_: any, row: User) => (
+        <div className="flex items-center gap-2">
+          {row.role === "MANAGER" && (
+            <button
+              onClick={() => handleManagePermissions(row)}
+              className="inline-flex items-center gap-1 rounded px-2 py-1 text-sm text-blue-600 transition-colors hover:bg-blue-50"
+              title="Manage Permissions"
+            >
+              <Settings className="h-4 w-4" />
+              Permissions
+            </button>
+          )}
+          <button
+            onClick={() => handleDeleteUser(row)}
+            className="inline-flex items-center gap-1 rounded px-2 py-1 text-sm text-red-600 transition-colors hover:bg-red-50"
+            title="Delete User"
+          >
+            <Trash2 className="h-4 w-4" />
+            Delete
+          </button>
+        </div>
+      ),
+    },
   ];
 
   return (
@@ -149,6 +240,99 @@ export default function UsersPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Permissions Modal */}
+      {showPermissionsModal && selectedUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+            <div className="mb-4">
+              <h2 className="text-xl font-bold text-gray-900">
+                Manage Permissions: {selectedUser.name}
+              </h2>
+              <p className="text-sm text-gray-600">
+                Configure deletion permissions for this manager
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <label className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  checked={permissions.canDeleteCollections}
+                  onChange={(e) =>
+                    setPermissions({
+                      ...permissions,
+                      canDeleteCollections: e.target.checked,
+                    })
+                  }
+                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <div>
+                  <div className="font-medium text-gray-900">Delete Collections</div>
+                  <div className="text-sm text-gray-500">
+                    Allow this manager to delete collection records
+                  </div>
+                </div>
+              </label>
+
+              <label className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  checked={permissions.canDeleteCustomers}
+                  onChange={(e) =>
+                    setPermissions({
+                      ...permissions,
+                      canDeleteCustomers: e.target.checked,
+                    })
+                  }
+                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <div>
+                  <div className="font-medium text-gray-900">Delete Customers</div>
+                  <div className="text-sm text-gray-500">
+                    Allow this manager to delete customer accounts
+                  </div>
+                </div>
+              </label>
+
+              <label className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  checked={permissions.canDeleteUsers}
+                  onChange={(e) =>
+                    setPermissions({
+                      ...permissions,
+                      canDeleteUsers: e.target.checked,
+                    })
+                  }
+                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <div>
+                  <div className="font-medium text-gray-900">Delete Users</div>
+                  <div className="text-sm text-gray-500">
+                    Allow this manager to delete user accounts (except admins)
+                  </div>
+                </div>
+              </label>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                onClick={() => setShowPermissionsModal(false)}
+                className="rounded-lg border border-gray-300 px-4 py-2 text-gray-700 transition-colors hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSavePermissions}
+                className="rounded-lg bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700"
+              >
+                Save Permissions
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </ClientDashboardLayout>
   );
 }

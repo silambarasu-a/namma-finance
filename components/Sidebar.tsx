@@ -15,6 +15,7 @@ import {
   LogOut,
   Menu,
   X,
+  TrendingUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -50,6 +51,12 @@ const sidebarLinks: SidebarLink[] = [
     label: "Collections",
     icon: CreditCard,
     roles: ["ADMIN", "MANAGER", "AGENT"],
+  },
+  {
+    href: "/admin/analytics",
+    label: "Analytics",
+    icon: TrendingUp,
+    roles: ["ADMIN", "MANAGER"],
   },
   {
     href: "/admin/borrowings",

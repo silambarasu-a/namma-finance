@@ -14,6 +14,9 @@ import {
   UserCheck,
   DollarSign,
   ArrowRight,
+  TrendingUp,
+  Calendar,
+  Target,
 } from "lucide-react";
 
 export default async function AgentDashboard() {
@@ -24,7 +27,16 @@ export default async function AgentDashboard() {
   }
 
   // Fetch agent's assigned customers and their loans
-  const [myCustomers, myCollectionsCount, recentLoans] = await Promise.all([
+  const [
+    myCustomers,
+    myCollectionsCount,
+    myCollections,
+    recentLoans,
+    allMyLoans,
+    overdueLoans,
+    upcomingEmis,
+  ] = await Promise.all([
+    // My customers count
     prisma.customer.count({
       where: {
         agentAssignments: {
@@ -35,11 +47,22 @@ export default async function AgentDashboard() {
         },
       },
     }),
+    // Collections made count
     prisma.collection.count({
       where: {
         agentId: user.id,
       },
     }),
+    // Total collections amount
+    prisma.collection.aggregate({
+      where: {
+        agentId: user.id,
+      },
+      _sum: {
+        amount: true,
+      },
+    }),
+    // Recent active loans
     prisma.loan.findMany({
       where: {
         customer: {
@@ -64,13 +87,78 @@ export default async function AgentDashboard() {
       orderBy: { createdAt: "desc" },
       take: 5,
     }),
+    // All my loans for calculations
+    prisma.loan.findMany({
+      where: {
+        customer: {
+          agentAssignments: {
+            some: {
+              agentId: user.id,
+              isActive: true,
+            },
+          },
+        },
+        status: "ACTIVE",
+      },
+      select: {
+        outstandingPrincipal: true,
+        outstandingInterest: true,
+      },
+    }),
+    // Overdue loans
+    prisma.loan.count({
+      where: {
+        customer: {
+          agentAssignments: {
+            some: {
+              agentId: user.id,
+              isActive: true,
+            },
+          },
+        },
+        status: "ACTIVE",
+        emiSchedule: {
+          some: {
+            isPaid: false,
+            dueDate: { lt: new Date() },
+          },
+        },
+      },
+    }),
+    // Upcoming EMIs in next 7 days
+    prisma.emiSchedule.count({
+      where: {
+        loan: {
+          customer: {
+            agentAssignments: {
+              some: {
+                agentId: user.id,
+                isActive: true,
+              },
+            },
+          },
+          status: "ACTIVE",
+        },
+        isPaid: false,
+        dueDate: {
+          gte: new Date(),
+          lte: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        },
+      },
+    }),
   ]);
 
   // Calculate total outstanding for agent's customers
-  const totalOutstanding = recentLoans.reduce(
-    (sum, loan) => sum.plus(new Decimal(loan.outstandingPrincipal)),
+  const totalOutstanding = allMyLoans.reduce(
+    (sum, loan) =>
+      sum
+        .plus(new Decimal(loan.outstandingPrincipal || 0))
+        .plus(new Decimal(loan.outstandingInterest || 0)),
     new Decimal(0)
   );
+
+  // Total collections made
+  const totalCollected = new Decimal(myCollections._sum.amount || 0);
 
   // Convert loans data to plain objects for client component
   const loansData = recentLoans.map((loan) => ({
@@ -99,27 +187,57 @@ export default async function AgentDashboard() {
           </p>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {/* Primary Stats Grid */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard
             title="My Customers"
             value={myCustomers}
+            subtitle="Assigned to me"
             icon={Users}
             variant="primary"
           />
 
           <StatCard
-            title="Collections Made"
-            value={myCollectionsCount}
-            icon={ClipboardCheck}
+            title="Total Collected"
+            value={<Money amount={totalCollected} />}
+            subtitle={`${myCollectionsCount} collections`}
+            icon={TrendingUp}
             variant="success"
           />
 
           <StatCard
             title="Total Outstanding"
             value={<Money amount={totalOutstanding} />}
+            subtitle={`${recentLoans.length} active loans`}
             icon={AlertCircle}
+            variant="warning"
+          />
+
+          <StatCard
+            title="Overdue Loans"
+            value={overdueLoans}
+            subtitle="Need attention"
+            icon={Target}
             variant="danger"
+          />
+        </div>
+
+        {/* Secondary Stats */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <StatCard
+            title="Upcoming EMIs"
+            value={upcomingEmis}
+            subtitle="Due in next 7 days"
+            icon={Calendar}
+            variant="default"
+          />
+
+          <StatCard
+            title="Active Loans"
+            value={allMyLoans.length}
+            subtitle="Under my management"
+            icon={ClipboardCheck}
+            variant="primary"
           />
         </div>
 

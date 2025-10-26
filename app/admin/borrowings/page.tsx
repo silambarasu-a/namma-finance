@@ -8,7 +8,6 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Money } from "@/components/Money";
 import Decimal from "decimal.js";
-import Link from "next/link";
 import { Wallet, Plus, Search, TrendingUp, AlertCircle, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/ui/stat-card";
@@ -31,6 +30,18 @@ export default function BorrowingsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [showModal, setShowModal] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [formData, setFormData] = useState({
+    lenderName: "",
+    lenderPhone: "",
+    lenderEmail: "",
+    amount: "",
+    interestRate: "",
+    startDate: new Date().toISOString().split("T")[0],
+    endDate: "",
+    notes: "",
+  });
 
   useEffect(() => {
     fetchBorrowings();
@@ -53,6 +64,42 @@ export default function BorrowingsPage() {
       console.error("Error fetching borrowings:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+
+    try {
+      const response = await fetch("/api/borrowings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+
+      if (response.ok) {
+        setShowModal(false);
+        setFormData({
+          lenderName: "",
+          lenderPhone: "",
+          lenderEmail: "",
+          amount: "",
+          interestRate: "",
+          startDate: new Date().toISOString().split("T")[0],
+          endDate: "",
+          notes: "",
+        });
+        fetchBorrowings();
+      } else {
+        const data = await response.json();
+        alert(data.error || "Failed to create borrowing");
+      }
+    } catch (error) {
+      console.error("Error creating borrowing:", error);
+      alert("Failed to create borrowing");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -149,7 +196,10 @@ export default function BorrowingsPage() {
               <p className="text-gray-600">Manage company borrowings and liabilities</p>
             </div>
           </div>
-          <Button className="flex items-center gap-2">
+          <Button
+            className="flex items-center gap-2"
+            onClick={() => setShowModal(true)}
+          >
             <Plus className="h-5 w-5" />
             Add Borrowing
           </Button>
@@ -236,6 +286,139 @@ export default function BorrowingsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Add Borrowing Modal */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+          <div className="w-full max-w-2xl rounded-lg bg-white p-6 shadow-xl">
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">Add New Borrowing</h2>
+              <p className="text-sm text-gray-600">Record a new borrowing from a lender</p>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                    Lender Name *
+                  </label>
+                  <Input
+                    type="text"
+                    required
+                    value={formData.lenderName}
+                    onChange={(e) => setFormData({ ...formData, lenderName: e.target.value })}
+                    placeholder="Enter lender name"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                    Phone Number
+                  </label>
+                  <Input
+                    type="tel"
+                    value={formData.lenderPhone}
+                    onChange={(e) => setFormData({ ...formData, lenderPhone: e.target.value })}
+                    placeholder="Enter phone number"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                    Email
+                  </label>
+                  <Input
+                    type="email"
+                    value={formData.lenderEmail}
+                    onChange={(e) => setFormData({ ...formData, lenderEmail: e.target.value })}
+                    placeholder="Enter email"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                    Amount *
+                  </label>
+                  <Input
+                    type="number"
+                    required
+                    step="0.01"
+                    min="0"
+                    value={formData.amount}
+                    onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                    placeholder="0.00"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                    Interest Rate (%) *
+                  </label>
+                  <Input
+                    type="number"
+                    required
+                    step="0.001"
+                    min="0"
+                    value={formData.interestRate}
+                    onChange={(e) => setFormData({ ...formData, interestRate: e.target.value })}
+                    placeholder="0.000"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                    Start Date *
+                  </label>
+                  <Input
+                    type="date"
+                    required
+                    value={formData.startDate}
+                    onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                    End Date
+                  </label>
+                  <Input
+                    type="date"
+                    value={formData.endDate}
+                    onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">
+                  Notes
+                </label>
+                <textarea
+                  rows={3}
+                  value={formData.notes}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Enter any additional notes..."
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowModal(false)}
+                  disabled={submitting}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={submitting}>
+                  {submitting ? "Adding..." : "Add Borrowing"}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </ClientDashboardLayout>
   );
 }

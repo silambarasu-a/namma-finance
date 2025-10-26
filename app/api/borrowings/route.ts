@@ -45,10 +45,10 @@ export async function GET(request: NextRequest) {
       amount: borrowing.amount.toString(),
       interestRate: borrowing.interestRate.toString(),
       startDate: borrowing.startDate.toISOString(),
-      endDate: borrowing.endDate.toISOString(),
+      endDate: borrowing.endDate ? borrowing.endDate.toISOString() : null,
       status: borrowing.status,
-      outstandingAmount: borrowing.outstandingAmount.toString(),
-      totalPaid: borrowing.totalPaid.toString(),
+      outstandingAmount: borrowing.outstanding.toString(),
+      totalPaid: borrowing.totalRepaid.toString(),
       createdAt: borrowing.createdAt.toISOString(),
     }));
 
@@ -73,26 +73,28 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const {
       lenderName,
+      lenderPhone,
+      lenderEmail,
       amount,
       interestRate,
       startDate,
       endDate,
-      repaymentSchedule,
       notes,
     } = body;
 
     const borrowing = await prisma.borrowing.create({
       data: {
         lenderName,
+        lenderPhone: lenderPhone || null,
+        lenderEmail: lenderEmail || null,
         amount,
         interestRate,
         startDate: new Date(startDate),
-        endDate: new Date(endDate),
-        repaymentSchedule,
-        notes,
+        endDate: endDate ? new Date(endDate) : null,
         status: "ACTIVE",
-        outstandingAmount: amount,
-        totalPaid: 0,
+        outstanding: amount,
+        totalRepaid: 0,
+        remarks: notes,
       },
     });
 

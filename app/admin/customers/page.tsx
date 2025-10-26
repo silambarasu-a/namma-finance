@@ -81,7 +81,12 @@ export default function CustomersPage() {
       accessor: "customer",
       render: (_: any, row: Customer) => (
         <div>
-          <div className="font-medium text-gray-900">{row.user.name}</div>
+          <Link
+            href={`/admin/customers/${row.id}`}
+            className="font-medium text-blue-600 hover:text-blue-900 hover:underline"
+          >
+            {row.user.name}
+          </Link>
           <div className="text-sm text-gray-500">
             {row.user.email.includes('@noreply.local')
               ? `Phone: ${row.user.phone || 'N/A'}`
