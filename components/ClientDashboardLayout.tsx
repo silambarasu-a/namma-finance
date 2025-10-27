@@ -3,11 +3,9 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Sidebar } from "./Sidebar";
+import { UserBasic } from "@/types";
 
-interface User {
-  id: string;
-  name: string;
-  email: string;
+interface User extends UserBasic {
   role: string;
 }
 

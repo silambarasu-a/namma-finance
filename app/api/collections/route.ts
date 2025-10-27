@@ -13,6 +13,7 @@ import { getSessionUserFromRequest, canAccessLoan } from "@/lib/auth";
 import { allocateCollection } from "@/lib/payments";
 import { createAuditLog, getClientInfo } from "@/lib/audit";
 import { cacheDelPattern } from "@/lib/cache";
+import { Prisma } from "@prisma/client";
 
 // Validation schemas
 const createCollectionSchema = z.object({
@@ -428,7 +429,7 @@ export async function GET(request: NextRequest) {
     const skip = (page - 1) * limit;
 
     // Build where clause
-    const where: any = {};
+    const where: Prisma.CollectionWhereInput = {};
 
     // Role-based filtering
     if (user.role === "AGENT") {

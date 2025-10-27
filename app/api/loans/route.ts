@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import Decimal from "decimal.js";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserFromRequest, isAdminOrManager, canAccessCustomer } from "@/lib/auth";
 import { calculateInstallmentAmount, calculateTotalInterest, validateLoanTerms } from "@/lib/payments";
@@ -217,7 +218,7 @@ export async function GET(request: NextRequest) {
     const skip = (page - 1) * limit;
 
     // Build where clause based on user role
-    const where: any = {};
+    const where: Prisma.LoanWhereInput = {};
 
     if (user.role === "AGENT") {
       // Agents can only see loans for their assigned customers
@@ -250,7 +251,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (status) {
-      where.status = status;
+      where.status = status as Prisma.LoanWhereInput["status"];
     }
 
     // Fetch loans with pagination

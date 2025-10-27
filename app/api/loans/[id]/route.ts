@@ -20,7 +20,10 @@ export async function GET(
     const { id: loanId } = await params;
 
     // Build query based on user role
-    const whereClause: any = { id: loanId };
+    const whereClause: {
+      id: string;
+      customerId?: string | { in: string[] };
+    } = { id: loanId };
 
     if (user.role === "CUSTOMER") {
       // Customers can only view their own loans

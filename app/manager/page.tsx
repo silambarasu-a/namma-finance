@@ -92,11 +92,11 @@ export default async function ManagerDashboard() {
       },
     }),
     // Total investment
-    prisma.$queryRaw<Array<{ total: any }>>`
+    prisma.$queryRaw<Array<{ total: number | string }>>`
       SELECT COALESCE(SUM(amount), 0)::NUMERIC as total FROM investments
     `.catch(() => [{ total: 0 }]),
     // Total borrowings (active)
-    prisma.$queryRaw<Array<{ total: any }>>`
+    prisma.$queryRaw<Array<{ total: number | string }>>`
       SELECT COALESCE(SUM(amount), 0)::NUMERIC as total FROM borrowings WHERE status = 'ACTIVE'
     `.catch(() => [{ total: 0 }]),
   ]);

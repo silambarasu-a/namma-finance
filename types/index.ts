@@ -104,6 +104,47 @@ export interface Loan {
   [key: string]: unknown;
 }
 
+// Common nested types for reuse
+export interface UserBasic {
+  id: string;
+  name: string;
+  email: string;
+}
+
+export interface CustomerBasic {
+  id: string;
+  user: UserBasic;
+}
+
+export interface LoanBasic {
+  id: string;
+  loanNumber: string;
+  principal: string;
+  status: string;
+}
+
+export interface LoanWithCustomer extends LoanBasic {
+  outstandingPrincipal: string;
+  outstandingInterest: string;
+  customer: {
+    user: UserBasic;
+  };
+}
+
+export interface LoanDetail extends Loan {
+  customer: Customer;
+  frequency: string;
+  installmentAmount: string;
+  totalInterest: string;
+  emiSchedule?: Array<{
+    id: string;
+    installmentNumber: number;
+    dueDate: string;
+    totalDue: string;
+    isPaid: boolean;
+  }>;
+}
+
 // ============================================================================
 // Collection Types
 // ============================================================================

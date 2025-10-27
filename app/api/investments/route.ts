@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
     const investments = await prisma.$queryRaw<
       Array<{
         id: string;
-        amount: any;
+        amount: number | string;
         source: string;
         investment_date: Date;
         description: string | null;

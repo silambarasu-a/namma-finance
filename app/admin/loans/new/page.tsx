@@ -9,20 +9,13 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-
-interface Customer {
-  id: string;
-  user: {
-    name: string;
-    email: string;
-  };
-}
+import { CustomerBasic } from "@/types";
 
 export default function NewLoanPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [customers, setCustomers] = useState<CustomerBasic[]>([]);
 
   const [formData, setFormData] = useState({
     customerId: "",

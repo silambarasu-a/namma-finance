@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ClientDashboardLayout } from "@/components/ClientDashboardLayout";
 import { Money } from "@/components/Money";
@@ -18,7 +18,6 @@ import {
   AlertCircle,
   CheckCircle,
   ArrowLeft,
-  Edit,
   UserCheck,
 } from "lucide-react";
 
@@ -38,7 +37,19 @@ interface CustomerData {
       phone: string;
       createdAt: string;
     };
-    loans: any[];
+    loans: Array<{
+      id: string;
+      loanNumber: string;
+      principal: string;
+      status: string;
+      outstandingPrincipal: string;
+      outstandingInterest: string;
+      totalCollected: string;
+      nextEmi?: {
+        emiAmount: string;
+        dueDate: string;
+      };
+    }>;
     agent: {
       id: string;
       name: string;
@@ -54,7 +65,15 @@ interface CustomerData {
     totalPaid: string;
     overdueEmis: number;
   };
-  upcomingEmis: any[];
+  upcomingEmis: Array<{
+    id: string;
+    installmentNumber: number;
+    dueDate: string;
+    totalDue: string;
+    loanNumber?: string;
+    emiNumber?: number;
+    emiAmount?: string;
+  }>;
 }
 
 export default function CustomerDetailPage() {
@@ -63,11 +82,7 @@ export default function CustomerDetailPage() {
   const [data, setData] = useState<CustomerData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchCustomerDetails();
-  }, [params.id]);
-
-  const fetchCustomerDetails = async () => {
+  const fetchCustomerDetails = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch(`/api/customers/${params.id}`);
@@ -85,7 +100,11 @@ export default function CustomerDetailPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [params.id, router]);
+
+  useEffect(() => {
+    fetchCustomerDetails();
+  }, [fetchCustomerDetails]);
 
   if (loading || !data) {
     return (
@@ -294,7 +313,7 @@ export default function CustomerDetailPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {upcomingEmis.map((emi: any) => (
+                {upcomingEmis.map((emi) => (
                   <div
                     key={emi.id}
                     className="flex items-center justify-between rounded-lg border border-blue-200 bg-blue-50 p-4"
@@ -319,7 +338,7 @@ export default function CustomerDetailPage() {
                     </div>
                     <div className="text-right">
                       <div className="text-lg font-bold text-gray-900">
-                        <Money amount={new Decimal(emi.emiAmount)} />
+                        <Money amount={new Decimal(emi.emiAmount || emi.totalDue)} />
                       </div>
                     </div>
                   </div>
@@ -363,7 +382,7 @@ export default function CustomerDetailPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {customer.loans.map((loan: any) => {
+                  {customer.loans.map((loan) => {
                     const outstanding = new Decimal(loan.outstandingPrincipal).plus(
                       new Decimal(loan.outstandingInterest)
                     );

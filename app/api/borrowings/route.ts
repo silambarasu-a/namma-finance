@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUserFromRequest } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 
 export async function GET(request: NextRequest) {
   const user = await getSessionUserFromRequest(request);
@@ -18,7 +19,7 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get("search");
     const status = searchParams.get("status");
 
-    const whereClause: any = {};
+    const whereClause: Prisma.BorrowingWhereInput = {};
 
     if (search) {
       whereClause.lenderName = {
@@ -28,7 +29,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (status) {
-      whereClause.status = status;
+      whereClause.status = status as Prisma.BorrowingWhereInput["status"];
     }
 
     const borrowings = await prisma.borrowing.findMany({

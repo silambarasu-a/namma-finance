@@ -9,26 +9,14 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-
-interface Loan {
-  id: string;
-  loanNumber: string;
-  outstandingPrincipal: string;
-  outstandingInterest: string;
-  customer: {
-    user: {
-      name: string;
-      email: string;
-    };
-  };
-}
+import { LoanWithCustomer } from "@/types";
 
 export default function NewCollectionPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [loans, setLoans] = useState<Loan[]>([]);
-  const [selectedLoan, setSelectedLoan] = useState<Loan | null>(null);
+  const [loans, setLoans] = useState<LoanWithCustomer[]>([]);
+  const [selectedLoan, setSelectedLoan] = useState<LoanWithCustomer | null>(null);
 
   const [formData, setFormData] = useState({
     loanId: "",

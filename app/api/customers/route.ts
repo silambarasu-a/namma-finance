@@ -3,6 +3,7 @@ import { getSessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
+import { Prisma } from "@prisma/client";
 
 const createCustomerSchema = z.object({
   name: z.string().min(1),
@@ -27,7 +28,7 @@ export async function GET(request: NextRequest) {
     const kycStatus = searchParams.get("kycStatus");
     const agentId = searchParams.get("agentId");
 
-    const where: any = {};
+    const where: Prisma.CustomerWhereInput = {};
 
     // Role-based filtering
     if (user.role === "AGENT") {
