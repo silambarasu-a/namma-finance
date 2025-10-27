@@ -11,28 +11,21 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card } from "@/components/ui/card";
+import { TableColumn } from "@/types";
 
-interface Column {
-  header: string;
-  accessor: string;
-  mobileLabel?: string;
-  render?: (value: any, row: any) => React.ReactNode;
-  className?: string;
-}
-
-interface ResponsiveTableProps {
-  columns: Column[];
-  data: any[];
+interface ResponsiveTableProps<T extends Record<string, unknown> = Record<string, unknown>> {
+  columns: TableColumn<T>[];
+  data: T[];
   emptyMessage?: string;
   className?: string;
 }
 
-export function ResponsiveTable({
+export function ResponsiveTable<T extends Record<string, unknown> = Record<string, unknown>>({
   columns,
   data,
   emptyMessage = "No data found",
   className,
-}: ResponsiveTableProps) {
+}: ResponsiveTableProps<T>) {
   return (
     <>
       {/* Desktop Table View */}
@@ -64,7 +57,7 @@ export function ResponsiveTable({
                     <TableCell key={colIndex} className={column.className}>
                       {column.render
                         ? column.render(row[column.accessor], row)
-                        : row[column.accessor]}
+                        : String(row[column.accessor] ?? '')}
                     </TableCell>
                   ))}
                 </TableRow>
@@ -92,7 +85,7 @@ export function ResponsiveTable({
                     <span className={cn("text-sm text-gray-900", column.className)}>
                       {column.render
                         ? column.render(row[column.accessor], row)
-                        : row[column.accessor]}
+                        : String(row[column.accessor] ?? '')}
                     </span>
                   </div>
                 ))}

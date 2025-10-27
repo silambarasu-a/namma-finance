@@ -14,6 +14,7 @@ interface LoanData {
   interestRate: string;
   outstandingPrincipal: string;
   status: string;
+  [key: string]: unknown;
 }
 
 interface CustomerLoansTableProps {
@@ -34,52 +35,52 @@ export function CustomerLoansTable({
       header: "Loan Number",
       accessor: "loanNumber",
       mobileLabel: "Loan #",
-      render: (value: string, row: LoanData) => (
+      render: (value: unknown, row: LoanData) => (
         <Link
           href={`/customer/loans/${row.id}`}
           className="font-medium text-blue-600 hover:text-blue-900 hover:underline"
         >
-          {value}
+          {String(value)}
         </Link>
       ),
     },
     {
       header: "Principal",
       accessor: "principal",
-      render: (value: string) => (
-        <Money amount={new Decimal(value)} />
+      render: (value: unknown) => (
+        <Money amount={new Decimal(String(value))} />
       ),
     },
     {
       header: "Interest Rate",
       accessor: "interestRate",
-      render: (value: string) => (
-        <span className="text-gray-900">{value}%</span>
+      render: (value: unknown) => (
+        <span className="text-gray-900">{String(value)}%</span>
       ),
     },
     {
       header: "Outstanding",
       accessor: "outstandingPrincipal",
-      render: (value: string) => (
+      render: (value: unknown) => (
         <span className="font-semibold text-red-600">
-          <Money amount={new Decimal(value)} />
+          <Money amount={new Decimal(String(value))} />
         </span>
       ),
     },
     {
       header: "Status",
       accessor: "status",
-      render: (value: string) => (
+      render: (value: unknown) => (
         <Badge
           variant={
-            value === "ACTIVE"
+            String(value) === "ACTIVE"
               ? "success"
-              : value === "CLOSED"
+              : String(value) === "CLOSED"
               ? "default"
               : "warning"
           }
         >
-          {value}
+          {String(value)}
         </Badge>
       ),
     },
@@ -101,7 +102,7 @@ export function CustomerLoansTable({
         </div>
       </CardHeader>
       <CardContent className="p-0">
-        <ResponsiveTable
+        <ResponsiveTable<LoanData>
           columns={columns}
           data={loans}
           emptyMessage="No loans found"

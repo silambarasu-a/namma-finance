@@ -20,6 +20,7 @@ interface Loan {
       email: string;
     };
   };
+  [key: string]: unknown;
 }
 
 interface AdminLoansTableProps {
@@ -48,19 +49,19 @@ export function AdminLoansTable({ loans, loading }: AdminLoansTableProps) {
       header: "Loan #",
       accessor: "loanNumber",
       mobileLabel: "Loan Number",
-      render: (value: string, row: Loan) => (
+      render: (value: unknown, row: Loan) => (
         <Link
           href={`/admin/loans/${row.id}`}
           className="font-medium text-blue-600 hover:text-blue-900 hover:underline"
         >
-          {value}
+          {String(value)}
         </Link>
       ),
     },
     {
       header: "Customer",
       accessor: "customer",
-      render: (_: any, row: Loan) => (
+      render: (_: unknown, row: Loan) => (
         <div>
           <div className="font-medium text-gray-900">
             {row.customer.user.name}
@@ -72,39 +73,39 @@ export function AdminLoansTable({ loans, loading }: AdminLoansTableProps) {
     {
       header: "Principal",
       accessor: "principal",
-      render: (value: string) => (
-        <Money amount={new Decimal(value)} />
+      render: (value: unknown) => (
+        <Money amount={new Decimal(String(value))} />
       ),
     },
     {
       header: "Interest Rate",
       accessor: "interestRate",
-      render: (value: string) => (
-        <span className="text-gray-900">{value}%</span>
+      render: (value: unknown) => (
+        <span className="text-gray-900">{String(value)}%</span>
       ),
     },
     {
       header: "Outstanding",
       accessor: "outstandingPrincipal",
-      render: (value: string) => (
+      render: (value: unknown) => (
         <span className="font-medium text-red-600">
-          <Money amount={new Decimal(value)} />
+          <Money amount={new Decimal(String(value))} />
         </span>
       ),
     },
     {
       header: "Status",
       accessor: "status",
-      render: (value: string) => (
-        <Badge variant={getStatusVariant(value)}>{value}</Badge>
+      render: (value: unknown) => (
+        <Badge variant={getStatusVariant(String(value))}>{String(value)}</Badge>
       ),
     },
     {
       header: "Actions",
       accessor: "id",
-      render: (value: string) => (
+      render: (value: unknown) => (
         <Link
-          href={`/admin/loans/${value}`}
+          href={`/admin/loans/${String(value)}`}
           className="text-blue-600 hover:text-blue-900"
         >
           View
@@ -121,7 +122,7 @@ export function AdminLoansTable({ loans, loading }: AdminLoansTableProps) {
             <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-blue-600"></div>
           </div>
         ) : (
-          <ResponsiveTable
+          <ResponsiveTable<Loan>
             columns={columns}
             data={loans}
             emptyMessage="No loans found"

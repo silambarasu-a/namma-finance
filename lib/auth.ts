@@ -43,6 +43,9 @@ export interface SessionUser {
   email: string;
   name: string;
   role: Role;
+  canDeleteCollections?: boolean;
+  canDeleteCustomers?: boolean;
+  canDeleteUsers?: boolean;
 }
 
 /**
@@ -96,7 +99,7 @@ export async function generateRefreshToken(payload: JWTPayload): Promise<string>
 export async function verifyAccessToken(token: string): Promise<JWTPayload | null> {
   try {
     const { payload } = await jwtVerify(token, JWT_SECRET);
-    return payload as JWTPayload;
+    return payload as unknown as JWTPayload;
   } catch (error) {
     console.error("Access token verification failed:", error);
     return null;
@@ -109,7 +112,7 @@ export async function verifyAccessToken(token: string): Promise<JWTPayload | nul
 export async function verifyRefreshToken(token: string): Promise<JWTPayload | null> {
   try {
     const { payload } = await jwtVerify(token, JWT_REFRESH_SECRET);
-    return payload as JWTPayload;
+    return payload as unknown as JWTPayload;
   } catch (error) {
     console.error("Refresh token verification failed:", error);
     return null;
@@ -179,6 +182,9 @@ export async function getSessionUser(): Promise<SessionUser | null> {
       email: true,
       name: true,
       role: true,
+      canDeleteCollections: true,
+      canDeleteCustomers: true,
+      canDeleteUsers: true,
     },
   });
 
@@ -210,6 +216,9 @@ export async function getSessionUserFromRequest(
       email: true,
       name: true,
       role: true,
+      canDeleteCollections: true,
+      canDeleteCustomers: true,
+      canDeleteUsers: true,
     },
   });
 

@@ -58,6 +58,7 @@ export default async function AdminDashboard() {
         outstandingPrincipal: true,
         outstandingInterest: true,
         totalLateFees: true,
+        totalPenalties: true,
       },
     }),
     prisma.loan.findMany({
@@ -202,12 +203,7 @@ export default async function AdminDashboard() {
           <StatCard
             title="Outstanding"
             value={<Money amount={totalOutstanding} />}
-            subtitle={
-              <>
-                P: <Money amount={totalOutstandingPrincipal} /> | I:{" "}
-                <Money amount={totalOutstandingInterest} />
-              </>
-            }
+            subtitle={`P: ₹${totalOutstandingPrincipal.toFixed(0)} | I: ₹${totalOutstandingInterest.toFixed(0)}`}
             icon={AlertCircle}
             variant="warning"
           />

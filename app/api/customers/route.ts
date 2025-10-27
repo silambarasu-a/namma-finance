@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import bcrypt from "bcryptjs";
 
 const createCustomerSchema = z.object({
   name: z.string().min(1),
@@ -139,7 +140,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Hash password
-    const bcrypt = require("bcryptjs");
     const hashedPassword = await bcrypt.hash(data.password, 12);
 
     // Create user and customer in a transaction

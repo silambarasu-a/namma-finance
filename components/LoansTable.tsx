@@ -6,6 +6,7 @@ import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { Money } from "@/components/Money";
 import Decimal from "decimal.js";
 import Link from "next/link";
+import { Loan } from "@/types";
 
 interface LoanData {
   id: string;
@@ -15,6 +16,7 @@ interface LoanData {
   principal: string;
   status: string;
   createdAt: string;
+  [key: string]: unknown;
 }
 
 interface LoansTableProps {
@@ -28,7 +30,7 @@ export function LoansTable({ loans, showViewAll = false, viewAllHref = "/admin/l
     {
       header: "Customer",
       accessor: "customerName",
-      render: (_: any, row: any) => (
+      render: (_: unknown, row: LoanData) => (
         <div>
           <div className="font-medium text-gray-900">{row.customerName}</div>
           <div className="text-sm text-gray-500">{row.customerEmail}</div>
@@ -39,47 +41,47 @@ export function LoansTable({ loans, showViewAll = false, viewAllHref = "/admin/l
       header: "Loan Number",
       accessor: "loanNumber",
       mobileLabel: "Loan #",
-      render: (value: string, row: LoanData) => (
+      render: (value: unknown, row: LoanData) => (
         <Link
           href={`/admin/loans/${row.id}`}
           className="font-medium text-blue-600 hover:text-blue-900 hover:underline"
         >
-          {value}
+          {String(value)}
         </Link>
       ),
     },
     {
       header: "Principal",
       accessor: "principal",
-      render: (value: string) => (
+      render: (value: unknown) => (
         <span className="font-semibold text-gray-900">
-          <Money amount={new Decimal(value)} />
+          <Money amount={new Decimal(String(value))} />
         </span>
       ),
     },
     {
       header: "Status",
       accessor: "status",
-      render: (value: string) => (
+      render: (value: unknown) => (
         <Badge
           variant={
-            value === "ACTIVE"
+            String(value) === "ACTIVE"
               ? "success"
-              : value === "CLOSED"
+              : String(value) === "CLOSED"
               ? "default"
               : "warning"
           }
         >
-          {value}
+          {String(value)}
         </Badge>
       ),
     },
     {
       header: "Created",
       accessor: "createdAt",
-      render: (value: string) => (
+      render: (value: unknown) => (
         <span className="text-sm text-gray-600">
-          {new Date(value).toLocaleDateString()}
+          {new Date(String(value)).toLocaleDateString()}
         </span>
       ),
     },
@@ -101,7 +103,7 @@ export function LoansTable({ loans, showViewAll = false, viewAllHref = "/admin/l
         </div>
       </CardHeader>
       <CardContent className="p-0">
-        <ResponsiveTable
+        <ResponsiveTable<LoanData>
           columns={columns}
           data={loans}
           emptyMessage="No loans found"

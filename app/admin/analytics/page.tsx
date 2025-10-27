@@ -8,6 +8,7 @@ import { StatCard } from "@/components/ui/stat-card";
 import { LineChart } from "@/components/charts/LineChart";
 import { BarChart } from "@/components/charts/BarChart";
 import { PieChart } from "@/components/charts/PieChart";
+import { MonthlyTrendData } from "@/types";
 import {
   TrendingUp,
   TrendingDown,
@@ -51,7 +52,7 @@ interface Analytics {
   capitalBalance: string;
   hasCapitalSurplus: boolean;
   capitalUtilization: string;
-  monthlyTrend: any[];
+  monthlyTrend: MonthlyTrendData[];
   statusBreakdown: {
     active: number;
     pending: number;
@@ -119,14 +120,18 @@ export default function AnalyticsPage() {
   const isProfitable = profitLossNum >= 0;
 
   // Prepare chart data
-  const monthlyTrendData = analytics.monthlyTrend.map((item: any) => ({
-    month: new Date(item.month).toLocaleDateString("en-IN", {
+  const monthlyTrendData = analytics.monthlyTrend.map((item: Record<string, unknown>) => ({
+    name: new Date(String(item.month)).toLocaleDateString("en-IN", {
       month: "short",
       year: "2-digit",
     }),
-    disbursed: parseFloat(item.total_disbursed || "0"),
-    collected: parseFloat(item.total_collected || "0"),
-    loans: parseInt(item.loan_count || "0"),
+    month: new Date(String(item.month)).toLocaleDateString("en-IN", {
+      month: "short",
+      year: "2-digit",
+    }),
+    disbursed: parseFloat(String(item.total_disbursed || "0")),
+    collected: parseFloat(String(item.total_collected || "0")),
+    loans: parseInt(String(item.loan_count || "0")),
   }));
 
   const statusPieData = [
@@ -399,12 +404,12 @@ export default function AnalyticsPage() {
             <BarChart
               data={[
                 {
-                  category: "Current",
+                  name: "Current",
                   Principal: parseFloat(analytics.totalOutstandingPrincipal),
                   Interest: parseFloat(analytics.totalOutstandingInterest),
                 },
               ]}
-              xKey="category"
+              xKey="name"
               bars={[
                 { key: "Principal", color: "#3b82f6", name: "Principal" },
                 { key: "Interest", color: "#10b981", name: "Interest" },

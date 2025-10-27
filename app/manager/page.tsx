@@ -59,26 +59,13 @@ export default async function ManagerDashboard() {
         outstandingPrincipal: true,
         outstandingInterest: true,
         totalLateFees: true,
+        totalPenalties: true,
       },
     }),
     prisma.loan.findMany({
       take: 5,
       orderBy: { createdAt: "desc" },
       include: {
-        customer: {
-          include: {
-            user: {
-              select: { name: true, email: true },
-            },
-          },
-        },
-      },
-      select: {
-        id: true,
-        loanNumber: true,
-        principal: true,
-        status: true,
-        createdAt: true,
         customer: {
           include: {
             user: {
@@ -217,12 +204,7 @@ export default async function ManagerDashboard() {
           <StatCard
             title="Outstanding"
             value={<Money amount={totalOutstanding} />}
-            subtitle={
-              <>
-                P: <Money amount={totalOutstandingPrincipal} /> | I:{" "}
-                <Money amount={totalOutstandingInterest} />
-              </>
-            }
+            subtitle={`P: ₹${totalOutstandingPrincipal.toFixed(0)} | I: ₹${totalOutstandingInterest.toFixed(0)}`}
             icon={AlertCircle}
             variant="warning"
           />

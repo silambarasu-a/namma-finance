@@ -19,6 +19,7 @@ interface User {
   canDeleteCustomers?: boolean;
   canDeleteUsers?: boolean;
   createdAt: string;
+  [key: string]: unknown;
 }
 
 export default function UsersPage() {
@@ -126,7 +127,7 @@ export default function UsersPage() {
     {
       header: "User",
       accessor: "name",
-      render: (_: any, row: User) => (
+      render: (_: unknown, row: User) => (
         <div>
           <div className="font-medium text-gray-900">{row.name}</div>
           <div className="text-sm text-gray-500">
@@ -140,21 +141,21 @@ export default function UsersPage() {
     {
       header: "Phone",
       accessor: "phone",
-      render: (value: string | null) => (
-        <span className="text-sm text-gray-900">{value || "—"}</span>
+      render: (value: unknown) => (
+        <span className="text-sm text-gray-900">{value ? String(value) : "—"}</span>
       ),
     },
     {
       header: "Role",
       accessor: "role",
-      render: (value: string) => (
-        <Badge variant={getRoleVariant(value)}>{value}</Badge>
+      render: (value: unknown) => (
+        <Badge variant={getRoleVariant(String(value))}>{String(value)}</Badge>
       ),
     },
     {
       header: "Status",
       accessor: "isActive",
-      render: (value: boolean) => (
+      render: (value: unknown) => (
         <Badge variant={value ? "success" : "outline"}>
           {value ? "Active" : "Inactive"}
         </Badge>
@@ -163,16 +164,16 @@ export default function UsersPage() {
     {
       header: "Created",
       accessor: "createdAt",
-      render: (value: string) => (
+      render: (value: unknown) => (
         <span className="text-sm text-gray-600">
-          {new Date(value).toLocaleDateString()}
+          {new Date(String(value)).toLocaleDateString()}
         </span>
       ),
     },
     {
       header: "Actions",
       accessor: "id",
-      render: (_: any, row: User) => (
+      render: (_: unknown, row: User) => (
         <div className="flex items-center gap-2">
           {row.role === "MANAGER" && (
             <button
@@ -231,7 +232,7 @@ export default function UsersPage() {
                 <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-blue-600"></div>
               </div>
             ) : (
-              <ResponsiveTable
+              <ResponsiveTable<User>
                 columns={columns}
                 data={users}
                 emptyMessage="No users found"

@@ -26,6 +26,7 @@ interface Loan {
       email: string;
     };
   };
+  [key: string]: unknown;
 }
 
 export default function LoansPage() {

@@ -32,6 +32,7 @@ interface Customer {
   _count: {
     loans: number;
   };
+  [key: string]: unknown;
 }
 
 export default function CustomersPage() {
@@ -79,7 +80,7 @@ export default function CustomersPage() {
     {
       header: "Customer",
       accessor: "customer",
-      render: (_: any, row: Customer) => (
+      render: (_: unknown, row: Customer) => (
         <div>
           <Link
             href={`/admin/customers/${row.id}`}
@@ -98,7 +99,7 @@ export default function CustomersPage() {
     {
       header: "Contact",
       accessor: "contact",
-      render: (_: any, row: Customer) => (
+      render: (_: unknown, row: Customer) => (
         <div>
           <div className="text-sm text-gray-900">{row.user.phone || "—"}</div>
           <div className="text-sm text-gray-500">
@@ -111,14 +112,14 @@ export default function CustomersPage() {
     {
       header: "KYC Status",
       accessor: "kycStatus",
-      render: (_: any, row: Customer) => (
+      render: (_: unknown, row: Customer) => (
         <Badge variant={getKycVariant(row.kycStatus)}>{row.kycStatus}</Badge>
       ),
     },
     {
       header: "Agent",
       accessor: "agent",
-      render: (_: any, row: Customer) =>
+      render: (_: unknown, row: Customer) =>
         row.agentAssignments.length > 0
           ? row.agentAssignments[0].agent.name
           : "—",
@@ -126,12 +127,12 @@ export default function CustomersPage() {
     {
       header: "Loans",
       accessor: "loans",
-      render: (_: any, row: Customer) => row._count.loans,
+      render: (_: unknown, row: Customer) => row._count.loans,
     },
     {
       header: "Status",
       accessor: "status",
-      render: (_: any, row: Customer) => (
+      render: (_: unknown, row: Customer) => (
         <Badge variant={row.user.isActive ? "success" : "outline"}>
           {row.user.isActive ? "Active" : "Inactive"}
         </Badge>
@@ -140,7 +141,7 @@ export default function CustomersPage() {
     {
       header: "Actions",
       accessor: "actions",
-      render: (_: any, row: Customer) => (
+      render: (_: unknown, row: Customer) => (
         <Link
           href={`/admin/customers/${row.id}`}
           className="text-blue-600 hover:text-blue-900"
@@ -203,7 +204,7 @@ export default function CustomersPage() {
             {loading ? (
               <div className="p-8 text-center text-gray-500">Loading...</div>
             ) : (
-              <ResponsiveTable
+              <ResponsiveTable<Customer>
                 columns={columns}
                 data={customers}
                 emptyMessage="No customers found"

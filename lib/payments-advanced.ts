@@ -9,6 +9,8 @@
  * - Top-up loan calculations
  */
 
+import { calculateInstallmentAmount, validateLoanTerms } from "./payments";
+
 import Decimal from "decimal.js";
 import { Frequency, getInstallmentsPerYear } from "./payments";
 
@@ -223,7 +225,6 @@ export function calculateTopUpLoan(params: {
     );
   } else {
     // Standard EMI calculation (import from payments.ts)
-    const { calculateInstallmentAmount } = require("./payments");
     newInstallment = calculateInstallmentAmount(
       newPrincipal,
       params.interestRate,
@@ -234,7 +235,6 @@ export function calculateTopUpLoan(params: {
   }
 
   // Calculate old installment to show increment
-  const { calculateInstallmentAmount } = require("./payments");
   const oldInstallment =
     params.repaymentType === "INTEREST_ONLY" || params.repaymentType === "BULLET_PAYMENT"
       ? calculateInterestOnlyInstallment(
@@ -390,7 +390,6 @@ export function validateAdvancedLoanTerms(terms: AdvancedLoanTerms): {
   const errors: string[] = [];
 
   // Import base validation
-  const { validateLoanTerms } = require("./payments");
   const baseValidation = validateLoanTerms({
     principal: terms.principal,
     annualInterestPercent: terms.annualInterestPercent,

@@ -32,6 +32,7 @@ interface Collection {
     name: string;
   };
   createdAt: string;
+  [key: string]: unknown;
 }
 
 export default function CollectionsPage() {
@@ -67,21 +68,21 @@ export default function CollectionsPage() {
     {
       header: "Date",
       accessor: "collectionDate",
-      render: (_: any, row: Collection) =>
+      render: (_: unknown, row: Collection) =>
         new Date(row.collectionDate).toLocaleDateString(),
     },
     {
       header: "Receipt #",
       accessor: "receiptNumber",
       mobileLabel: "Receipt",
-      render: (_: any, row: Collection) => (
+      render: (_: unknown, row: Collection) => (
         <span className="font-medium">{row.receiptNumber}</span>
       ),
     },
     {
       header: "Customer",
       accessor: "customer",
-      render: (_: any, row: Collection) => (
+      render: (_: unknown, row: Collection) => (
         <div>
           <div className="font-medium text-gray-900">
             {row.loan.customer.user.name}
@@ -96,12 +97,12 @@ export default function CollectionsPage() {
       header: "Loan #",
       accessor: "loanNumber",
       mobileLabel: "Loan",
-      render: (_: any, row: Collection) => row.loan.loanNumber,
+      render: (_: unknown, row: Collection) => row.loan.loanNumber,
     },
     {
       header: "Amount",
       accessor: "amount",
-      render: (_: any, row: Collection) => (
+      render: (_: unknown, row: Collection) => (
         <span className="font-medium text-green-600">
           <Money amount={new Decimal(row.amount)} />
         </span>
@@ -110,26 +111,26 @@ export default function CollectionsPage() {
     {
       header: "Principal",
       accessor: "principalAmount",
-      render: (_: any, row: Collection) => (
+      render: (_: unknown, row: Collection) => (
         <Money amount={new Decimal(row.principalAmount)} />
       ),
     },
     {
       header: "Interest",
       accessor: "interestAmount",
-      render: (_: any, row: Collection) => (
+      render: (_: unknown, row: Collection) => (
         <Money amount={new Decimal(row.interestAmount)} />
       ),
     },
     {
       header: "Agent",
       accessor: "agent",
-      render: (_: any, row: Collection) => row.agent.name,
+      render: (_: unknown, row: Collection) => row.agent.name,
     },
     {
       header: "Method",
       accessor: "paymentMethod",
-      render: (_: any, row: Collection) => (
+      render: (_: unknown, row: Collection) => (
         <Badge variant="outline">{row.paymentMethod}</Badge>
       ),
     },
@@ -194,7 +195,7 @@ export default function CollectionsPage() {
           </Card>
           <Card>
             <CardContent className="p-6">
-              <div className="text-sm text-gray-600">Today's Collections</div>
+              <div className="text-sm text-gray-600">Today&apos;s Collections</div>
               <div className="text-2xl font-bold text-blue-600">
                 <Money
                   amount={collections
@@ -219,7 +220,7 @@ export default function CollectionsPage() {
             {loading ? (
               <div className="p-8 text-center text-gray-500">Loading...</div>
             ) : (
-              <ResponsiveTable
+              <ResponsiveTable<Collection>
                 columns={columns}
                 data={collections}
                 emptyMessage="No collections found"

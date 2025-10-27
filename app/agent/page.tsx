@@ -126,7 +126,7 @@ export default async function AgentDashboard() {
       },
     }),
     // Upcoming EMIs in next 7 days
-    prisma.emiSchedule.count({
+    prisma.eMISchedule.count({
       where: {
         loan: {
           customer: {

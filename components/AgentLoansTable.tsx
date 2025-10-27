@@ -14,6 +14,7 @@ interface LoanData {
   customerEmail: string;
   customerPhone: string | null;
   outstandingPrincipal: string;
+  [key: string]: unknown;
 }
 
 interface AgentLoansTableProps {
@@ -27,7 +28,7 @@ export function AgentLoansTable({ loans, showViewAll = false, viewAllHref = "/ag
     {
       header: "Customer",
       accessor: "customerName",
-      render: (_: any, row: any) => (
+      render: (_: unknown, row: LoanData) => (
         <div>
           <div className="font-medium text-gray-900">{row.customerName}</div>
           <div className="text-sm text-gray-500">{row.customerEmail}</div>
@@ -38,30 +39,30 @@ export function AgentLoansTable({ loans, showViewAll = false, viewAllHref = "/ag
       header: "Loan Number",
       accessor: "loanNumber",
       mobileLabel: "Loan #",
-      render: (value: string, row: LoanData) => (
+      render: (value: unknown, row: LoanData) => (
         <Link
           href={`/agent/loans/${row.id}`}
           className="font-medium text-blue-600 hover:text-blue-900 hover:underline"
         >
-          {value}
+          {String(value)}
         </Link>
       ),
     },
     {
       header: "Outstanding",
       accessor: "outstandingPrincipal",
-      render: (value: string) => (
+      render: (value: unknown) => (
         <span className="font-semibold text-red-600">
-          <Money amount={new Decimal(value)} />
+          <Money amount={new Decimal(String(value))} />
         </span>
       ),
     },
     {
       header: "Contact",
       accessor: "customerPhone",
-      render: (value: string | null) => (
+      render: (value: unknown) => (
         <span className="text-gray-600">
-          {value || "—"}
+          {value ? String(value) : "—"}
         </span>
       ),
     },
@@ -73,7 +74,7 @@ export function AgentLoansTable({ loans, showViewAll = false, viewAllHref = "/ag
         <CardTitle>Active Loans</CardTitle>
       </CardHeader>
       <CardContent className="p-0">
-        <ResponsiveTable
+        <ResponsiveTable<LoanData>
           columns={columns}
           data={loans}
           emptyMessage="No active loans found"

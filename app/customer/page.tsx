@@ -55,7 +55,7 @@ export default async function CustomerDashboard() {
       },
     }),
     // Upcoming EMIs
-    prisma.emiSchedule.findMany({
+    prisma.eMISchedule.findMany({
       where: {
         loan: {
           customer: {
@@ -70,7 +70,7 @@ export default async function CustomerDashboard() {
         },
       },
       select: {
-        emiAmount: true,
+        totalDue: true,
         dueDate: true,
       },
       orderBy: {
@@ -79,7 +79,7 @@ export default async function CustomerDashboard() {
       take: 1,
     }),
     // Overdue EMIs count
-    prisma.emiSchedule.count({
+    prisma.eMISchedule.count({
       where: {
         loan: {
           customer: {
@@ -132,7 +132,7 @@ export default async function CustomerDashboard() {
 
   const totalPaid = new Decimal(totalPaidCollections._sum.amount || 0);
 
-  const nextEmiAmount = upcomingEmis.length > 0 ? new Decimal(upcomingEmis[0].emiAmount) : new Decimal(0);
+  const nextEmiAmount = upcomingEmis.length > 0 ? new Decimal(upcomingEmis[0].totalDue) : new Decimal(0);
   const nextEmiDate = upcomingEmis.length > 0 ? upcomingEmis[0].dueDate : null;
 
   // Convert loans data to plain objects for client component
@@ -183,12 +183,7 @@ export default async function CustomerDashboard() {
           <StatCard
             title="Outstanding Amount"
             value={<Money amount={totalOutstanding} />}
-            subtitle={
-              <>
-                P: <Money amount={totalOutstandingPrincipal} /> | I:{" "}
-                <Money amount={totalOutstandingInterest} />
-              </>
-            }
+            subtitle={`P: ₹${totalOutstandingPrincipal.toFixed(0)} | I: ₹${totalOutstandingInterest.toFixed(0)}`}
             icon={AlertCircle}
             variant={overdueEmis > 0 ? "danger" : "warning"}
           />

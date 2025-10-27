@@ -20,6 +20,7 @@ interface Customer {
   _count: {
     loans: number;
   };
+  [key: string]: unknown;
 }
 
 export default function AgentCustomersPage() {
@@ -65,7 +66,7 @@ export default function AgentCustomersPage() {
     {
       header: "Customer",
       accessor: "customer",
-      render: (_: any, row: Customer) => (
+      render: (_: unknown, row: Customer) => (
         <div>
           <div className="font-medium text-gray-900">{row.user.name}</div>
           <div className="text-sm text-gray-500">{row.user.email}</div>
@@ -75,7 +76,7 @@ export default function AgentCustomersPage() {
     {
       header: "Contact",
       accessor: "contact",
-      render: (_: any, row: Customer) => (
+      render: (_: unknown, row: Customer) => (
         <div>
           <div className="text-sm text-gray-900">{row.user.phone || "—"}</div>
           <div className="text-sm text-gray-500">
@@ -88,7 +89,7 @@ export default function AgentCustomersPage() {
     {
       header: "KYC Status",
       accessor: "kycStatus",
-      render: (_: any, row: Customer) => (
+      render: (_: unknown, row: Customer) => (
         <Badge variant={getKycVariant(row.kycStatus)}>{row.kycStatus}</Badge>
       ),
     },
@@ -96,7 +97,7 @@ export default function AgentCustomersPage() {
       header: "Active Loans",
       accessor: "loans",
       mobileLabel: "Loans",
-      render: (_: any, row: Customer) => row._count.loans,
+      render: (_: unknown, row: Customer) => row._count.loans,
     },
   ];
 
@@ -140,7 +141,7 @@ export default function AgentCustomersPage() {
           {loading ? (
             <div className="p-8 text-center text-gray-500">Loading...</div>
           ) : (
-            <ResponsiveTable
+            <ResponsiveTable<Customer>
               columns={columns}
               data={customers}
               emptyMessage="No customers assigned to you yet"

@@ -138,9 +138,9 @@ export async function GET(
       installmentAmount: loan.installmentAmount.toString(),
       nextEmi: loan.emiSchedule[0]
         ? {
-            emiNumber: loan.emiSchedule[0].emiNumber,
+            installmentNumber: loan.emiSchedule[0].installmentNumber,
             dueDate: loan.emiSchedule[0].dueDate.toISOString(),
-            emiAmount: loan.emiSchedule[0].emiAmount.toString(),
+            totalDue: loan.emiSchedule[0].totalDue.toString(),
           }
         : null,
       createdAt: loan.createdAt.toISOString(),
@@ -150,9 +150,9 @@ export async function GET(
     const serializedUpcomingEmis = upcomingEmis.map((emi) => ({
       id: emi.id,
       loanNumber: emi.loan.loanNumber,
-      emiNumber: emi.emiNumber,
+      installmentNumber: emi.installmentNumber,
       dueDate: emi.dueDate.toISOString(),
-      emiAmount: emi.emiAmount.toString(),
+      totalDue: emi.totalDue.toString(),
     }));
 
     const response = {

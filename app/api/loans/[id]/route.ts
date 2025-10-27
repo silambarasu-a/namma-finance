@@ -20,7 +20,7 @@ export async function GET(
     const { id: loanId } = await params;
 
     // Build query based on user role
-    let whereClause: any = { id: loanId };
+    const whereClause: any = { id: loanId };
 
     if (user.role === "CUSTOMER") {
       // Customers can only view their own loans
@@ -39,7 +39,14 @@ export async function GET(
     } else if (user.role === "AGENT") {
       // Agents can only view loans of their assigned customers
       const agentCustomers = await prisma.customer.findMany({
-        where: { agentId: user.id },
+        where: {
+          agentAssignments: {
+            some: {
+              agentId: user.id,
+              isActive: true,
+            },
+          },
+        },
         select: { id: true },
       });
 

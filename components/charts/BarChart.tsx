@@ -10,15 +10,18 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
+import { LineChartDataPoint } from "@/types";
+
+interface BarConfig {
+  key: string;
+  color: string;
+  name: string;
+}
 
 interface BarChartProps {
-  data: any[];
+  data: LineChartDataPoint[];
   xKey: string;
-  bars: Array<{
-    key: string;
-    color: string;
-    name: string;
-  }>;
+  bars: BarConfig[];
   height?: number;
 }
 
@@ -49,8 +52,8 @@ export function BarChart({ data, xKey, bars, height = 300 }: BarChartProps) {
             borderRadius: "8px",
             padding: "12px",
           }}
-          formatter={(value: any) =>
-            `₹${parseFloat(value).toLocaleString("en-IN", {
+          formatter={(value: number | string) =>
+            `₹${parseFloat(value.toString()).toLocaleString("en-IN", {
               minimumFractionDigits: 0,
               maximumFractionDigits: 0,
             })}`

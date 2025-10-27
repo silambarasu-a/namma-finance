@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
 
   try {
     // Get total investment amount
-    const totalInvestment = await prisma.$queryRaw<Array<{ total: any }>>`
+    const totalInvestment = await prisma.$queryRaw<Array<{ total: number | string }>>`
       SELECT COALESCE(SUM(amount), 0) as total
       FROM (
         SELECT amount FROM investments

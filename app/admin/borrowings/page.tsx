@@ -11,19 +11,7 @@ import Decimal from "decimal.js";
 import { Wallet, Plus, Search, TrendingUp, AlertCircle, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/ui/stat-card";
-
-interface Borrowing {
-  id: string;
-  lenderName: string;
-  amount: string;
-  interestRate: string;
-  startDate: string;
-  endDate: string;
-  status: string;
-  outstandingAmount: string;
-  totalPaid: string;
-  createdAt: string;
-}
+import { Borrowing } from "@/types";
 
 export default function BorrowingsPage() {
   const [borrowings, setBorrowings] = useState<Borrowing[]>([]);
@@ -135,48 +123,48 @@ export default function BorrowingsPage() {
     {
       header: "Lender",
       accessor: "lenderName",
-      render: (value: string) => (
-        <span className="font-medium text-gray-900">{value}</span>
+      render: (value: unknown) => (
+        <span className="font-medium text-gray-900">{String(value)}</span>
       ),
     },
     {
       header: "Amount",
       accessor: "amount",
-      render: (value: string) => (
+      render: (value: unknown) => (
         <span className="font-semibold text-gray-900">
-          <Money amount={new Decimal(value)} />
+          <Money amount={new Decimal(String(value))} />
         </span>
       ),
     },
     {
       header: "Interest Rate",
       accessor: "interestRate",
-      render: (value: string) => (
-        <span className="text-sm text-gray-900">{value}%</span>
+      render: (value: unknown) => (
+        <span className="text-sm text-gray-900">{String(value)}%</span>
       ),
     },
     {
       header: "Outstanding",
       accessor: "outstandingAmount",
-      render: (value: string) => (
+      render: (value: unknown) => (
         <span className="font-semibold text-red-600">
-          <Money amount={new Decimal(value)} />
+          <Money amount={new Decimal(String(value))} />
         </span>
       ),
     },
     {
       header: "Status",
       accessor: "status",
-      render: (value: string) => (
-        <Badge variant={getStatusVariant(value)}>{value}</Badge>
+      render: (value: unknown) => (
+        <Badge variant={getStatusVariant(String(value))}>{String(value)}</Badge>
       ),
     },
     {
       header: "End Date",
       accessor: "endDate",
-      render: (value: string) => (
+      render: (value: unknown) => (
         <span className="text-sm text-gray-600">
-          {new Date(value).toLocaleDateString()}
+          {new Date(String(value)).toLocaleDateString()}
         </span>
       ),
     },
@@ -277,7 +265,7 @@ export default function BorrowingsPage() {
                 <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-blue-600"></div>
               </div>
             ) : (
-              <ResponsiveTable
+              <ResponsiveTable<Borrowing>
                 columns={columns}
                 data={borrowings}
                 emptyMessage="No borrowings found"

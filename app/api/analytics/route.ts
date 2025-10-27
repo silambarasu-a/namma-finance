@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
     const endDate = searchParams.get("endDate");
 
     // Calculate date range based on period
-    let dateFilter: Prisma.LoanWhereInput = {};
+    const dateFilter: Prisma.LoanWhereInput = {};
     const now = new Date();
 
     if (startDate && endDate) {
@@ -168,12 +168,12 @@ export async function GET(request: NextRequest) {
       `,
 
       // Total investment capital
-      prisma.$queryRaw<Array<{ total: any }>>`
+      prisma.$queryRaw<Array<{ total: number | string }>>`
         SELECT COALESCE(SUM(amount), 0)::NUMERIC as total FROM investments
       `.catch(() => [{ total: 0 }]),
 
       // Total borrowings (active)
-      prisma.$queryRaw<Array<{ total: any }>>`
+      prisma.$queryRaw<Array<{ total: number | string }>>`
         SELECT COALESCE(SUM(amount), 0)::NUMERIC as total FROM borrowings WHERE status = 'ACTIVE'
       `.catch(() => [{ total: 0 }]),
     ]);
@@ -230,10 +230,10 @@ export async function GET(request: NextRequest) {
     // Prepare response
     const analytics = {
       period,
-      dateRange: dateFilter.createdAt
+      dateRange: dateFilter.createdAt && typeof dateFilter.createdAt !== 'string'
         ? {
-            start: dateFilter.createdAt.gte,
-            end: dateFilter.createdAt.lte || new Date(),
+            start: (dateFilter.createdAt as {gte?: Date; lte?: Date}).gte || new Date(),
+            end: (dateFilter.createdAt as {gte?: Date; lte?: Date}).lte || new Date(),
           }
         : null,
 

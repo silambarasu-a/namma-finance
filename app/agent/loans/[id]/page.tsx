@@ -184,7 +184,7 @@ export default function CustomerLoanDetailPage() {
               Loan Not Found
             </h2>
             <p className="text-gray-600 mb-6">
-              The loan you are looking for does not exist or you don't have
+              The loan you are looking for does not exist or you don&apos;t have
               permission to view it.
             </p>
             <Link
